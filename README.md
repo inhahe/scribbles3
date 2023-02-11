@@ -28,7 +28,7 @@ Options:
   --huespeed arg            amount to increment hue per frame if --changehue is
                             enabled. ignored if --file or --loop enabled.
                             defaults to 1. hue cycles from 0 to 360
-  --huemult arg             if --loop or --file is enabled and chanehue is
+  --huemult arg             if --loop or --file is enabled and chaneghue is
                             enabled, huemult is how many times to cycles
                             through hues per time loop
   --loop                    loops back on itself in time seamlessly
