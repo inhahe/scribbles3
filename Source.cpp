@@ -15,8 +15,8 @@ struct rgb
   int r, g, b;
 };
 
-int pointsperspacecurve = 100;
-int pointspertimecurve = 100;
+int spacecurvepoints = 100;
+int timecurvepoints = 100;
 int spacecurves = 30;
 int timecurves = 5;
 int w = 500;
@@ -28,7 +28,7 @@ bool dowrite = false;
 bool noloop = true;
 bool contiguous = true;
 string filename = "";
-bool changehue = false;
+bool rotatehue = false;
 float huespeed = 1;
 int huemult = 1;
 float sat = 100;
@@ -392,7 +392,7 @@ int parsecommandline(int argc, char* argv[])
   int r = 0;
   try
   {
-    options_description desc{ "Options" };
+    options_description desc{ "\nOptions" };
     desc.add_options()
       ("help", "This help screen")
       ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you did before")
@@ -400,34 +400,34 @@ int parsecommandline(int argc, char* argv[])
         "if an output file is specified, --loop will be enabled "
         "and the animation will only loop once, and it won't "
         "let you close it until it's done.")
-      ("spacepoints", value<int>(),
+      ("spacecurves", value<int>(),
         "number of curve anchorpoints in space. "
         "increase this to make more complicated shapes.defaults to 30")
-      ("timepoints", value<int>(),
+      ("timecurves", value<int>(),
         "number of curve anchorpoints in time per space anchorpoint. "
         "increase this to make the loops longer when specifying --loop or --file. "
         "defaults to 5")
       ("w", value<int>(), "window width, defaults to 500")
       ("h", value<int>(), "window height, defaults to 500")
       ("bgcolor", value<string>(), "background color, six-digit hex number, defaults to #ffffff, or "
-        "#000000 if --changehue is enabled")
+        "#000000 if --rotatehue is enabled")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number, defaults to #0000ff")
-      ("changehue", "make fgcolor cycle through the hues. overrides --fgcolor")
-      ("huespeed", value<float>(), "amount to increment hue per frame if --changehue is enabled. "
+      ("rotatehue", "make fgcolor cycle through the hues. overrides --fgcolor")
+      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. "
         "ignored if --file or --loop enabled. defaults to 1. hue cycles from 0 to 360")
       ("huemult", value<int>(), "if --loop or --file is enabled and chaneghue is enabled, huemult "
         "specifies how many times to cycles through hues per time loop. defaults to 1")
-      ("saturation", value<float>(), "saturation of colors when using --changehue. 1 to 100. "
+      ("saturation", value<float>(), "saturation of colors when using --rotatehue. 1 to 100. "
         "defaults to 100")
-      ("value", value<float>(), "brightness of colors when using --changehue. 1 to 100. "
+      ("value", value<float>(), "brightness of colors when using --rotatehue. 1 to 100. "
         "defaults to 100")
       ("loop", "loops back on itself in time seamlessly")
-      ("incontiguous", "make it so that spacepoints don't move contiguously through time, but skip pixels")
-      ("pointsperspacecurve", value<int>(),
+      ("incontiguous", "make it so that spacecurves don't move contiguously through time, but skip pixels")
+      ("spacecurvepoints", value<int>(),
         "number of points calculated on each bezier curve. "
         "lines are drawn between each point. defaults to 100. "
         "make this 1 for a jagged effect")
-      ("pointspertimecurve", value<int>(),
+      ("timecurvepoints", value<int>(),
         "number of points calculated on each bezier curve of change. "
         "if incontiguous is not specified, points are connected linearly across time. "
         "try 1 along with --incontiguous to get a rapid-fire succession of unique shapes");
@@ -447,18 +447,18 @@ int parsecommandline(int argc, char* argv[])
       filename = vm["file"].as<string>();
       dowrite = true;
     }
-    if (vm.count("spacepoints")) spacecurves = vm["spacepoints"].as<int>();
-    if (vm.count("timepoints")) timecurves = vm["timepoints"].as<int>();
+    if (vm.count("spacecurves")) spacecurves = vm["spacecurves"].as<int>();
+    if (vm.count("timecurves")) timecurves = vm["timecurves"].as<int>();
     if (vm.count("w")) w = vm["w"].as<int>();
     if (vm.count("h")) h = vm["h"].as<int>();
     if (vm.count("fgcolor")) fg = hex2rgb(vm["fgcolor"].as<string>());
     if (vm.count("loop")) noloop = false;
     if (vm.count("incontiguous")) contiguous = false;
-    if (vm.count("pointsperspacecurve")) pointsperspacecurve = vm["pointsperspacecurve"].as<int>();
-    if (vm.count("pointspertimecurve")) pointspertimecurve = vm["pointspertimecurve"].as<int>();
-    if (vm.count("changehue"))
+    if (vm.count("spacecurvepoints")) spacecurvepoints = vm["spacecurvepoints"].as<int>();
+    if (vm.count("timecurvepoints")) timecurvepoints = vm["timecurvepoints"].as<int>();
+    if (vm.count("rotatehue"))
     {
-      changehue = true;
+      rotatehue = true;
       bg = { 0, 0, 0 };
     }
     if (vm.count("saturation")) sat = vm["saturation"].as<float>();
@@ -514,20 +514,21 @@ int main(int argc, char* argv[])
   {
 
     metapoints* mps = new metapoints[spacecurves];
-    for (int i = 0; i < spacecurves; i++) mps[i] = metapoints(w, h, pointspertimecurve, contiguous);
+    for (int i = 0; i < spacecurves; i++) mps[i] = metapoints(w, h, timecurvepoints, contiguous);
 
     vector<point> dispanchors;
     for (;;)
     {
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
       SDL_RenderPresent(renderer);
-      drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)),
-        screen, writer, false, bg, changehue ? HSVtoRGB(hue, sat, val) : fg);
-      if (changehue)
+      drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
+        screen, writer, false, bg, rotatehue ? HSVtoRGB(hue, sat, val) : fg);
+      if (rotatehue)
       {
         hue += huespeed;
         if (hue > 360) hue = fmod(hue, 360);
-        else if (hue < 0) hue -= int(hue / 360) * 360 + 360;
+        else if (hue < 0) hue += int(abs(hue) / 360) * 360 + 360;
+        //why the hell doesn't hue -= (int(hue) / 360) * 360 + 360; work?
       }
       vector<point>().swap(dispanchors);
       SDL_Event event;
@@ -547,25 +548,25 @@ int main(int argc, char* argv[])
     for (int i = 0; i < spacecurves; i++)
     {
       auto timeanchors = randanchors(w, h, timecurves);
-      auto timepercanchors2 = createpercloop(timeanchors, pointspertimecurve);
+      auto timepercanchors2 = createpercloop(timeanchors, timecurvepoints);
       timepercanchors[i] = timepercanchors2;
     }
     vector<point> dispanchors;
-    int bs = testbeziersize(pointspertimecurve);
-    if (changehue) huespeed = 360.0 / (timecurves * bs) * huemult;
+    int bs = testbeziersize(timecurvepoints);
+    if (rotatehue) huespeed = 360.0 / (timecurves * bs) * huemult;
     for (;;)
     {
       for (int i2 = 0; i2 < timecurves * bs; i2++)
       {
         for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
-        if (changehue)
+        if (rotatehue)
         {
           hue += huespeed;
           if (hue > 360) hue = fmod(hue, 360);
           else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
-        drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)),
-          screen, writer, dowrite, bg, changehue ? HSVtoRGB(int(hue), sat, val) : fg);
+        drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
+          screen, writer, dowrite, bg, rotatehue ? HSVtoRGB(int(hue), sat, val) : fg);
 
         vector<point>().swap(dispanchors);
         SDL_Event event;
