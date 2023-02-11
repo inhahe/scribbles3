@@ -5,6 +5,7 @@ For an example of what it does, see https://twitter.com/iyaelsorai/status/162419
 I used to draw designs like what this makes, on paper, a long time ago, and for many years I wanted to create it progammatically, but I just couldn't quite figure out how I could do it. But recently I started thinking about it again and coding, and I had a couple of realizations that made it possible.
 
 ```
+
 Options:
   --help                    This help screen
   --seed arg                randomization seed. use this to get the same exact
@@ -20,9 +21,9 @@ Options:
   --w arg                   window width, defaults to 500
   --h arg                   window height, defaults to 500
   --bgcolor arg             background color, six-digit hex number, defaults to
-                            #ffffff
+                            #ffffff, or #000000 if --changehue is enabled
   --fgcolor arg             foreground color, six-digit hex number, defaults to
-                            #ffffff
+                            #0000ff
   --changehue               make fgcolor cycle through the hues. overrides
                             --fgcolor
   --huespeed arg            amount to increment hue per frame if --changehue is
