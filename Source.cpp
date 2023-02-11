@@ -1,4 +1,4 @@
-#include "SDL.h"
+#include <SDL.h>
 #include <math.h>       /* sin */
 #include <vector>
 #include <cstdint>
@@ -6,17 +6,31 @@
 #include <gif.h>
 #include <cstring>
 #include <base64.h>
-using namespace std;
+#include <boost/program_options.hpp>
 #define PI 3.14159265
+
+using namespace std;
+//namespace po = boost::program_options;
+using namespace  boost::program_options;
+
+struct rgb
+{
+  int r, g, b;
+};
 
 int pointsperspacecurve = 100;
 int pointspertimecurve = 100;
-
 int spacecurves = 30; 
 int timecurves = 5;
 int w = 1000;
 int h = 1000;
-int bg_r = 255, bg_g = 255, bg_b = 255, fg_r = 0, fg_g = 0, fg_b = 255;
+rgb bg = { 255, 255, 255 };
+rgb fg = { 0, 0, 255 };
+int seed = -1;
+bool dowrite = false;
+bool noloop = true;
+bool contiguous = true;
+string filename = "";
 
 uint8_t *image = new uint8_t[w * h * 4];
 
@@ -43,7 +57,6 @@ struct curve
 float getPt(float n1, float n2, float perc)
 {
   float diff = n2 - n1;
-
   return n1 + diff * perc;
 }
 
@@ -68,7 +81,6 @@ vector<point> plotline(point p1, point p2)
 {
   vector<point> points;
   int dx, dy, dx1, dy1, px, py, xd, yd, x, y;
-  point p;
   dx = p2.x - p1.x;
   dy = p2.y - p1.y;
   dx1 = abs(dx);
@@ -80,31 +92,18 @@ vector<point> plotline(point p1, point p2)
     xd = (p1.x < p2.x) ? 1 : -1;
     y = p1.y;
     x = p1.x;
-    p.x = x;
-    p.y = y;
-    points.push_back(p);
+    points.push_back(point {x, y});
     while (x != p2.x)
     {
       x += xd;
-      if (px < 0)
-      {
-        px += 2 * dy1;
-      }
+      if (px < 0) px += 2 * dy1;
       else
       {
-        if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0))
-        {
-          y += xd;
-        }
-        else
-        {
-          y -= xd;
-        }
+        if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) y += xd;
+        else y -= xd;
         px += 2 * (dy1 - dx1);
       }
-      p.x = x;
-      p.y = y;
-      points.push_back(p);
+      points.push_back(point {x, y});
     }
   }
   else
@@ -112,9 +111,7 @@ vector<point> plotline(point p1, point p2)
     yd = (p1.y < p2.y) ? 1 : -1;
     y = p1.y;
     x = p1.x;
-    p.x = x;
-    p.y = y;
-    points.push_back(p);
+    points.push_back(point{x, y});
     while (y != p2.y)
     {
       y += yd;
@@ -124,19 +121,11 @@ vector<point> plotline(point p1, point p2)
       }
       else
       {
-        if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0))
-        {
-          x += yd;
-        }
-        else
-        {
-          x -= yd;
-        }
+        if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) x += yd;
+        else x -= yd;
         py += 2 * (dx1 - dy1);
       }
-      p.x = x;
-      p.y = y;
-      points.push_back(p);
+      points.push_back(point {x, y});
     }
   }
   return points;
@@ -235,14 +224,8 @@ public:
     }
     else
     {
-      if (this->contiguous)
-      {
-        return this->curvepoints2[this->pointindex++];
-      }
-      else
-      {
-        return this->curvepoints[this->pointindex++];
-      }
+      if (this->contiguous) return this->curvepoints2[this->pointindex++];
+      else return this->curvepoints[this->pointindex++];
     }
   }
   ~metapoints()
@@ -305,16 +288,10 @@ vector<point> createdisploop(vector<point> percpoints)
   return disppoints;
 }
 
-void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints, bool *screen, GifWriter& writer, bool dowrite)
+void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints, bool *screen, GifWriter& writer, bool dowrite, rgb bg, rgb fg)
 {
   int sp = 0;
-  for (int y = 0; y < h; y++)
-  {
-    for (int x = 0; x < w; x++)
-    {
-      screen[++sp] = false;
-    }
-  }
+  for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
   enum direction { none, up, down };
   direction ldir = none, dir;
   point lp = { -1, -1 };
@@ -331,10 +308,7 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints, 
         screen[sp] = not screen[sp];
         SDL_RenderDrawPoint(renderer, lp.x, lp.y);
       }
-      if (i >= s)
-      {
-        break;
-      }
+      if (i >= s) break;
       ldir = dir;
     }
     lp = p;
@@ -345,164 +319,130 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints, 
     bool dot = false;
     for (int x = 0; x < w; x++)
     {
-      if (screen[++sp])
-      {
-        dot = not dot;
-      }
+      if (screen[++sp]) dot = not dot;
       if (dot)
       {
-        SDL_SetRenderDrawColor(renderer, fg_r, fg_g, fg_b, 255);
-        if (dowrite)
-        {
-          SetPixel(x, y, fg_r, fg_g, fg_b);
-        }
+        SDL_SetRenderDrawColor(renderer, fg.r, fg.g, fg.b, 255);
+        if (dowrite) SetPixel(x, y, fg.r, fg.g, fg.b);
       }
       else
       {
-        SDL_SetRenderDrawColor(renderer, bg_r, bg_g, bg_b, 255);
-        if (dowrite)
-        {
-        SetPixel(x, y, bg_r, bg_g, bg_b);
-        }
+        SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 255);
+        if (dowrite) SetPixel(x, y, bg.r, bg.g, bg.b);
       }
       SDL_RenderDrawPoint(renderer, x, y);
     }
   }
   SDL_RenderPresent(renderer);
-  if (dowrite)
-  {
-    GifWriteFrame(&writer, image, w, h, 2, 8, true);
-  }
+  if (dowrite) GifWriteFrame(&writer, image, w, h, 2, 8, true);
 }
 
-string parameters = "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";
-string myname = "JAgNDEkLEEk7AAoBCBsNSShHSScACgEGBRpJICAgSUEgBwEIAQxA";
+string decode(string s)
+{
+  string s2 = base64_decode(s);
+  for (char& c : s2) c = c ^ 0b01101001;
+  return s2;
+}
+
+rgb hex2rgb(string s)
+{
+  rgb rgb2;
+  int b = s[0] == '#' ? 1 : 0;
+  char subbuff[3];
+  memcpy(subbuff, &s[b], 2);
+  subbuff[2] = '\0';
+  sscanf_s(subbuff, "%x", &rgb2.r);
+  memcpy(subbuff, &s[b + 2], 2);
+  subbuff[2] = '\0';
+  sscanf_s(subbuff, "%x", &rgb2.g);
+  memcpy(subbuff, &s[b + 4], 2);
+  subbuff[2] = '\0';
+  sscanf_s(subbuff, "%x", &rgb2.b);
+  return rgb2;
+}
+
+int parsecommandline(int argc, char* argv[])
+{
+  int r = 0;
+  try
+  {
+    options_description desc{ "Options" };
+    desc.add_options()
+      ("help", "This help text")
+      ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you did before")
+      ("file", value<string>(),
+        "if an output file is specified, --loop will be enabled "
+        "and the animation will only loop once, and it won't "
+        "let you close it until it's done.")
+      ("spacepoints", value<int>(),
+        "number of curve anchorpoints in space. "
+        "increase this to make more complicated shapes.defaults to 30")
+      ("timepoints", value<int>(),
+        "number of curve anchorpoints in time per space anchorpoint. "
+        "increase this to make the loops longer when specifying --loop or --file. "
+        "defaults to 5")
+      ("w", value<int>(), "window width, defaults to 1000")
+      ("h", value<int>(), "window height, defaults to 1000")
+      ("bgcolor", value<string>(), "background color, six-digit hex number, defaults to #ffffff")
+      ("fgcolor", value<string>(), "foreground color, six-digit hex number, defaults to #ffffff")
+      ("loop", "loops back on itself in time seamlessly")
+      ("incontiguous", "make it so that spacepoints don't move contiguously through time, but skip pixels")
+      ("pointsperspacecurve", value<int>(),
+        "number of points calculated on each bezier curve. "
+        "lines are drawn between each point. defaults to 100. "
+        "make this 1 for a jagged effect")
+      ("pointspertimecurve", value<int>(),
+        "number of points calculated on each bezier curve of change. "
+        "if incontiguous is not specified, points are connected linearly across time. "
+        "try 1 along with --discontiguous to get a rapid-fire succession of unique shapes");
+
+    //("pi", value<float>()->default_value(3.14f), "Pi")
+    //("age", value<int>()->notifier(on_age), "Age");
+
+    variables_map vm;
+    store(parse_command_line(argc, argv, desc), vm);
+    notify(vm);
+
+    if (vm.count("help"))
+    {
+      cout << desc;
+      r = 1;
+    }
+    if (vm.count("seed")) seed = vm["seed"].as<int>() << '\n';
+    if (vm.count("file"))
+    {
+      filename = vm["pi"].as<string>();
+      dowrite = true;
+    }
+    if (vm.count("spacepoints")) spacecurves = vm["spacepoints"].as<int>();
+    if (vm.count("timepoints")) timecurves = vm["timepoints"].as<int>();
+    if (vm.count("w")) w = vm["w"].as<int>();
+    if (vm.count("h")) h = vm["h"].as<int>();
+    if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
+    if (vm.count("fgcolor")) fg = hex2rgb(vm["fgcolor"].as<string>());
+    if (vm.count("loop")) noloop = false;
+    if (vm.count("incontiguous")) contiguous = false;
+    if (vm.count("pointsperspacecurve")) pointsperspacecurve = vm["pointsperspacecurve"].as<int>();
+    if (vm.count("pointspertimecurve")) pointspertimecurve = vm["pointspertimecurve"].as<int>();
+  }
+  catch (const error& ex)
+  {
+    std::cerr << ex.what() << '\n';
+  }
+  return r;
+}
 
 int main(int argc, char* argv[])
 {
   SDL_Init(SDL_INIT_EVERYTHING);
-    
-  int seed = -1;
-  bool dowrite = false;
-  bool noloop = true;
-  bool contiguous = true;
-  
+     
   bool* screen = new bool[w*h]; 
-    
-  const char* filename = "";
-  for (int i = 0; i < argc; i++)
-  {
-    if (strcmp(argv[i], "--seed") == 0)
-    {
-      if (i < argc - 1)
-      {
-        seed = atoi(argv[i + 1]);
-      }
-    }
-    else if (strcmp(argv[i], "--file") == 0)
-    {
-      if (i < argc - 1)
-      {
-        filename = argv[i + 1];
-        dowrite = true;
-      }
-    }
-    else if (strcmp(argv[i], "--spacepoints") == 0)
-    {
-      if (i < argc - 1)
-      {
-        spacecurves = atoi(argv[i + 1]);
-      }
-    }
-    else if (strcmp(argv[i], "--timepoints") == 0)
-    {
-      if (i < argc - 1)
-      {
-        timecurves = atoi(argv[i + 1]);
-      }
-    }
-    else if (strcmp(argv[i], "--w") == 0)
-    {
-      if (i < argc - 1)
-      {
-        w = atoi(argv[i + 1]);
-      }
-    }
-    else if (strcmp(argv[i], "--h") == 0)
-    {
-      if (i < argc - 1)
-      {
-        h = atoi(argv[i + 1]);
-      }
-    }
-    else if (strcmp(argv[i], "--bgcolor") == 0)
-    {
-      if (i < argc - 1)
-      {
-        int b = argv[i + 1][0] == '#' ? 1 : 0;
-        char subbuff[3];
-        memcpy(subbuff, &argv[i + 1][b], 2);
-        subbuff[2] = '\0';
-        sscanf_s(subbuff, "%x", &bg_r);
-        memcpy(subbuff, &argv[i + 1][b + 2], 2);
-        subbuff[2] = '\0';
-        sscanf_s(subbuff, "%x", &bg_g);
-        memcpy(subbuff, &argv[i + 1][b + 4], 2);
-        subbuff[2] = '\0';
-        sscanf_s(subbuff, "%x", &bg_b);
-      }
-    }
-    else if (strcmp(argv[i], "--fgcolor") == 0)
-    {
-      if (i < argc - 1)
-      {
-        int b = argv[i + 1][0] == '#' ? 1 : 0;
-        char subbuff[3];
-        memcpy(subbuff, &argv[i + 1][b], 2);
-        subbuff[2] = '\0';
-        sscanf_s(subbuff, "%x", &fg_r);
-        memcpy(subbuff, &argv[i + 1][b + 2], 2);
-        subbuff[2] = '\0';
-        sscanf_s(subbuff, "%x", &fg_g);
-        memcpy(subbuff, &argv[i + 1][b + 4], 2);
-        subbuff[2] = '\0';
-        sscanf_s(subbuff, "%x", &fg_b);
-      }
-    }
-    else if (strcmp(argv[i], "--loop") == 0)
-    {
-      noloop = false;
-    }
-    else if (strcmp(argv[i], "--incontiguous") == 0)
-    {
-      contiguous = false;
-    }
-    else if (strcmp(argv[i], "--pointsperspacecurve") == 0)
-    {
-      if (i < argc - 1)
-      {
-        pointsperspacecurve = atoi(argv[i + 1]);
-      }
-    }
-    else if (strcmp(argv[i], "--pointspertimecurve") == 0)
-    {
-      if (i < argc - 1)
-      {
-        pointspertimecurve = atoi(argv[i + 1]);
-      }
-    }
-    else if (strcmp(argv[i], "--help") == 0)
-    {
-      string p_d = base64_decode(parameters);
-      for (char& c : p_d)
-      {
-        c = c ^ 0b01101001;
-      }
-      cout << p_d << endl;
-      delete image;
-      return 0;
-    }
-  }
+
+  cout << " got here" << endl;
+  if (parsecommandline(argc, argv)) return 0;
+
+  cout << pointspertimecurve << endl; 
+
   if (dowrite)
   {
     contiguous = false;
@@ -514,60 +454,40 @@ int main(int argc, char* argv[])
   SDL_RenderClear(renderer);
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   
-  if (argc == 1)
-  {
-    string p_d = base64_decode(parameters);
-    for (char& c : p_d)
-    {
-      c = c ^ 0b01101001;
-    }
-    cout << p_d << endl;
-  }
   GifWriter writer = {};
   if (dowrite)
   {
-    GifBegin(&writer, filename, w, h, 8, true);
+    GifBegin(&writer, filename.c_str(), w, h, 8, true);
   }
 
   if (seed == -1)
   {
     int t = time(NULL);
-    std::cout << "seed: " << t << endl;
-    std::cout << endl;
+    cout << endl;
+    cout << "seed: " << t << endl;
+    cout << endl;
     srand(t);
   }
   else
   {
     srand(seed);
   }
-
-  string p_me = base64_decode(myname);
-  for (char& c : p_me)
-  {
-    c = c ^ 0b01101001;
-  }
-  cout << p_me << endl;
   
+  cout << "Made by Richard A. Nichols III (Inhahe)" << endl;;
+
   if (noloop)
   {
   
     metapoints* mps = new metapoints[spacecurves];
-    for (int i = 0; i < spacecurves; i++)
-    {
-      mps[i] = metapoints(w, h, pointspertimecurve, contiguous);
-    }
-    
+    for (int i = 0; i < spacecurves; i++) mps[i] = metapoints(w, h, pointspertimecurve, contiguous);
+   
     vector<point> dispanchors;
     for (;;)
     {
-      for (int i = 0; i < spacecurves; i++)
-      {
-        point p = mps[i].getpoint();
-        
-        dispanchors.push_back(p);
-      }
+      for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
+   
       SDL_RenderPresent(renderer);
-      drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)), screen, writer, false);
+      drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)), screen, writer, false, bg, fg);
       vector<point>().swap(dispanchors);
       SDL_Event event; 
       SDL_PollEvent(&event);
@@ -595,11 +515,9 @@ int main(int argc, char* argv[])
     {
       for (int i2 = 0; i2 < timecurves * pointspertimecurve; i2++)
       {
-        for (int i = 0; i < spacecurves; i++)
-        {
-          dispanchors.push_back(timepercanchors[i][i2]);
-        }
-        drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)), screen, writer, dowrite);
+        for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
+      
+        drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)), screen, writer, dowrite, bg, fg);
 
         vector<point>().swap(dispanchors);
         SDL_Event event;
