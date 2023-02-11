@@ -29,8 +29,8 @@ Options:
                             enabled. ignored if --file or --loop enabled.
                             defaults to 1. hue cycles from 0 to 360
   --huemult arg             if --loop or --file is enabled and chaneghue is
-                            enabled, huemult is how many times to cycles
-                            through hues per time loop
+                            enabled, huemult specifies how many times to cycles
+                            through hues per time loop. defaults to 1
   --loop                    loops back on itself in time seamlessly
   --incontiguous            make it so that spacepoints don't move contiguously
                             through time, but skip pixels
