@@ -406,15 +406,15 @@ int parsecommandline(int argc, char* argv[])
       ("timecurves", value<int>(),
         "number of curves in time per space curve. only applies when --loop or --file is enabled. "
         "increase this to make the loops longer. defaults to 5")
-      ("w", value<int>(), "window width, defaults to 500")
-      ("h", value<int>(), "window height, defaults to 500")
-      ("bgcolor", value<string>(), "background color, six-digit hex number, defaults to #ffffff, or "
+      ("w", value<int>(), "window width. defaults to 500")
+      ("h", value<int>(), "window height.  defaults to 500")
+      ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or "
         "#000000 if --rotatehue is enabled")
-      ("fgcolor", value<string>(), "foreground color, six-digit hex number, defaults to #0000ff")
+      ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
       ("rotatehue", "make fgcolor cycle through the hues. overrides --fgcolor")
       ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. "
         "ignored if --file or --loop enabled. defaults to 1. hue cycles from 0 to 360")
-      ("huemult", value<int>(), "if --loop or --file is enabled and chaneghue is enabled, huemult "
+      ("huemult", value<int>(), "if --loop or --file is enabled and --rotatehue is enabled, --huemult "
         "specifies how many times to cycles through hues per time loop. defaults to 1")
       ("saturation", value<float>(), "saturation of colors when using --rotatehue. 1 to 100. "
         "defaults to 100")

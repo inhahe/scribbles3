@@ -17,19 +17,19 @@ Options:
   --timecurves arg       number of curves in time per space curve. only applies
                          when --loop or --file is enabled. increase this to
                          make the loops longer. defaults to 5
-  --w arg                window width, defaults to 500
-  --h arg                window height, defaults to 500
-  --bgcolor arg          background color, six-digit hex number, defaults to
+  --w arg                window width. defaults to 500
+  --h arg                window height.  defaults to 500
+  --bgcolor arg          background color, six-digit hex number. defaults to
                          #ffffff, or #000000 if --rotatehue is enabled
-  --fgcolor arg          foreground color, six-digit hex number, defaults to
+  --fgcolor arg          foreground color, six-digit hex number. defaults to
                          #0000ff
   --rotatehue            make fgcolor cycle through the hues. overrides
                          --fgcolor
   --huespeed arg         amount to increment hue per frame if --rotatehue is
                          enabled. ignored if --file or --loop enabled. defaults
                          to 1. hue cycles from 0 to 360
-  --huemult arg          if --loop or --file is enabled and chaneghue is
-                         enabled, huemult specifies how many times to cycles
+  --huemult arg          if --loop or --file is enabled and --rotatehue is
+                         enabled, --huemult specifies how many times to cycles
                          through hues per time loop. defaults to 1
   --saturation arg       saturation of colors when using --rotatehue. 1 to 100.
                          defaults to 100
