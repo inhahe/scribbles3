@@ -562,7 +562,7 @@ int main(int argc, char* argv[])
     }
     vector<point> dispanchors;
     int bs = testbeziersize(pointspertimecurve);
-    if (changehue) huespeed = 360.0 / (timecurves * bs * huemult);
+    if (changehue) huespeed = 360.0 / (timecurves * bs) * huemult;
     for (;;)
     {
       for (int i2 = 0; i2 < timecurves * bs; i2++)
