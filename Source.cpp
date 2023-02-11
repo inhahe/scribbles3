@@ -33,8 +33,8 @@ string filename = "";
 bool changehue = false;
 float huespeed = 1;
 int huemult = 1;
-int sat = 100;
-int val = 100;
+float sat = 100;
+float val = 100;
 
 uint8_t* image = new uint8_t[w * h * 4];
 
@@ -431,9 +431,9 @@ int parsecommandline(int argc, char* argv[])
         "ignored if --file or --loop enabled. defaults to 1. hue cycles from 0 to 360")
       ("huemult", value<int>(), "if --loop or --file is enabled and chaneghue is enabled, huemult "
         "specifies how many times to cycles through hues per time loop. defaults to 1")
-      ("saturation", value<int>(), "saturation of colors when using --changehue. 1 to 100. "
+      ("saturation", value<float>(), "saturation of colors when using --changehue. 1 to 100. "
         "defaults to 100")
-      ("value", value<int>(), "brightness of colors when using --changehue. 1 to 100. "
+      ("value", value<float>(), "brightness of colors when using --changehue. 1 to 100. "
         "defaults to 100")
       ("loop", "loops back on itself in time seamlessly")
       ("incontiguous", "make it so that spacepoints don't move contiguously through time, but skip pixels")
@@ -478,8 +478,8 @@ int parsecommandline(int argc, char* argv[])
       changehue = true;
       bg = { 0, 0, 0 };
     }
-    if (vm.count("saturation")) sat = vm["saturation"].as<int>();
-    if (vm.count("value")) val = vm["value"].as<int>();
+    if (vm.count("saturation")) sat = vm["saturation"].as<float>();
+    if (vm.count("value")) val = vm["value"].as<float>();
     if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
     if (vm.count("huespeed")) huespeed = vm["huespeed"].as<float>();
     if (vm.count("huemult")) huemult = vm["huemult"].as<int>();
