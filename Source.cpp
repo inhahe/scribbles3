@@ -21,8 +21,8 @@ int pointsperspacecurve = 100;
 int pointspertimecurve = 100;
 int spacecurves = 30;
 int timecurves = 5;
-int w = 1000;
-int h = 1000;
+int w = 500;
+int h = 500;
 rgb bg = { 255, 255, 255 };
 rgb fg = { 0, 0, 255 };
 int seed = -1;
@@ -30,6 +30,9 @@ bool dowrite = false;
 bool noloop = true;
 bool contiguous = true;
 string filename = "";
+bool changehue = false;
+float huespeed = 1;
+int huemult = 0;
 
 uint8_t* image = new uint8_t[w * h * 4];
 
@@ -161,7 +164,7 @@ public:
     this->c2.p3.y = (this->c1.p3.y + this->c1.p2.y) / 2;
     this->pointspercurve = pointspercurve;
     this->curvepoints = beziercurve_quadratic(this->c2.p1, this->c2.p2, this->c2.p3, this->pointspercurve);
-    this->lastpoint = curvepoints.back();
+    this->lastpoint = this->curvepoints.back();
     if (this->contiguous)
     {
       point lp = { -1, -1 };
@@ -287,7 +290,8 @@ vector<point> createdisploop(vector<point> percpoints)
   return disppoints;
 }
 
-void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints, bool* screen, GifWriter& writer, bool dowrite, rgb bg, rgb fg)
+void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
+  bool* screen, GifWriter& writer, bool dowrite, rgb bg, rgb fg)
 {
   int sp = 0;
   for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
@@ -313,6 +317,7 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints, 
     lp = p;
   }
   sp = 0;
+
   for (int y = 0; y < h; y++)
   {
     bool dot = false;
@@ -353,6 +358,37 @@ rgb hex2rgb(string s)
   return rgb2;
 }
 
+rgb HSVtoRGB(float H, float S, float V) {
+  float s = S / 100;
+  float v = V / 100;
+  float C = s * v;
+  float X = C * (1 - abs(fmod(H / 60.0, 2) - 1));
+  float m = v - C;
+  float r, g, b;
+  if (H >= 0 && H < 60) {
+    r = C, g = X, b = 0;
+  }
+  else if (H >= 60 && H < 120) {
+    r = X, g = C, b = 0;
+  }
+  else if (H >= 120 && H < 180) {
+    r = 0, g = C, b = X;
+  }
+  else if (H >= 180 && H < 240) {
+    r = 0, g = X, b = C;
+  }
+  else if (H >= 240 && H < 300) {
+    r = X, g = 0, b = C;
+  }
+  else {
+    r = C, g = 0, b = X;
+  }
+  int R = (r + m) * 255;
+  int G = (g + m) * 255;
+  int B = (b + m) * 255;
+  return rgb{ R, G, B };
+}
+
 int parsecommandline(int argc, char* argv[])
 {
   int r = 0;
@@ -360,7 +396,7 @@ int parsecommandline(int argc, char* argv[])
   {
     options_description desc{ "Options" };
     desc.add_options()
-      ("help", "This help text")
+      ("help", "This help screen")
       ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you did before")
       ("file", value<string>(),
         "if an output file is specified, --loop will be enabled "
@@ -373,10 +409,16 @@ int parsecommandline(int argc, char* argv[])
         "number of curve anchorpoints in time per space anchorpoint. "
         "increase this to make the loops longer when specifying --loop or --file. "
         "defaults to 5")
-      ("w", value<int>(), "window width, defaults to 1000")
-      ("h", value<int>(), "window height, defaults to 1000")
-      ("bgcolor", value<string>(), "background color, six-digit hex number, defaults to #ffffff")
-      ("fgcolor", value<string>(), "foreground color, six-digit hex number, defaults to #ffffff")
+      ("w", value<int>(), "window width, defaults to 500")
+      ("h", value<int>(), "window height, defaults to 500")
+      ("bgcolor", value<string>(), "background color, six-digit hex number, defaults to #ffffff, or "
+        "#000000 if --changehue is enabled")
+      ("fgcolor", value<string>(), "foreground color, six-digit hex number, defaults to #0000ff")
+      ("changehue", "make fgcolor cycle through the hues. overrides --fgcolor")
+      ("huespeed", value<float>(), "amount to increment hue per frame if --changehue is enabled. "
+        "ignored if --file or --loop enabled. defaults to 1. hue cycles from 0 to 360")
+      ("huemult", value<int>(), "if --loop or --file is enabled and chaneghue is enabled, huemult "
+        "is how many times to cycles through hues per time loop")
       ("loop", "loops back on itself in time seamlessly")
       ("incontiguous", "make it so that spacepoints don't move contiguously through time, but skip pixels")
       ("pointsperspacecurve", value<int>(),
@@ -386,7 +428,7 @@ int parsecommandline(int argc, char* argv[])
       ("pointspertimecurve", value<int>(),
         "number of points calculated on each bezier curve of change. "
         "if incontiguous is not specified, points are connected linearly across time. "
-        "try 1 along with --discontiguous to get a rapid-fire succession of unique shapes");
+        "try 1 along with --incontiguous to get a rapid-fire succession of unique shapes");
 
     //("pi", value<float>()->default_value(3.14f), "Pi")
     //("age", value<int>()->notifier(on_age), "Age");
@@ -397,10 +439,10 @@ int parsecommandline(int argc, char* argv[])
 
     if (vm.count("help"))
     {
-      cout << desc;
+      std::cout << desc;
       r = 1;
     }
-    if (vm.count("seed")) seed = vm["seed"].as<int>() << '\n';
+    if (vm.count("seed")) seed = vm["seed"].as<int>();
     if (vm.count("file"))
     {
       filename = vm["file"].as<string>();
@@ -410,12 +452,20 @@ int parsecommandline(int argc, char* argv[])
     if (vm.count("timepoints")) timecurves = vm["timepoints"].as<int>();
     if (vm.count("w")) w = vm["w"].as<int>();
     if (vm.count("h")) h = vm["h"].as<int>();
-    if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
     if (vm.count("fgcolor")) fg = hex2rgb(vm["fgcolor"].as<string>());
     if (vm.count("loop")) noloop = false;
     if (vm.count("incontiguous")) contiguous = false;
     if (vm.count("pointsperspacecurve")) pointsperspacecurve = vm["pointsperspacecurve"].as<int>();
     if (vm.count("pointspertimecurve")) pointspertimecurve = vm["pointspertimecurve"].as<int>();
+    if (vm.count("changehue"))
+    {
+      changehue = true;
+      bg = { 0, 0, 0 };
+    }
+    if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
+    if (vm.count("huespeed")) huespeed = vm["huespeed"].as<float>();
+    if (vm.count("huemult")) huemult = vm["huemult"].as<int>();
+    if (argc == 1) std::cout << desc;
   }
   catch (const error& ex)
   {
@@ -426,6 +476,7 @@ int parsecommandline(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+  float hue = 160;
   SDL_Init(SDL_INIT_EVERYTHING);
 
   bool* screen = new bool[w * h];
@@ -451,18 +502,14 @@ int main(int argc, char* argv[])
 
   if (seed == -1)
   {
-    int t = time(NULL);
-    cout << endl;
-    cout << "seed: " << t << endl;
-    cout << endl;
-    srand(t);
+    seed = time(NULL);
+    std::cout << endl;
+    std::cout << "seed: " << seed << endl;
+    std::cout << endl;
   }
-  else
-  {
-    srand(seed);
-  }
+  srand(seed);
 
-  cout << "Made by Richard A. Nichols III (Inhahe)" << endl;;
+  std::cout << "Made by Richard A. Nichols III (Inhahe)" << endl;;
 
   if (noloop)
   {
@@ -476,7 +523,13 @@ int main(int argc, char* argv[])
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
 
       SDL_RenderPresent(renderer);
-      drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)), screen, writer, false, bg, fg);
+      drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)),
+        screen, writer, false, bg, changehue ? HSVtoRGB(hue, 100, 100) : fg);
+      if (changehue)
+      {
+        hue += huespeed;
+        if (hue > 360) hue -= 360;
+      }
       vector<point>().swap(dispanchors);
       SDL_Event event;
       SDL_PollEvent(&event);
@@ -499,14 +552,19 @@ int main(int argc, char* argv[])
       timepercanchors[i] = timepercanchors2;
     }
     vector<point> dispanchors;
-
+    if (changehue) huespeed = 360.0 / (timecurves * pointspertimecurve) * huemult;
     for (;;)
     {
       for (int i2 = 0; i2 < timecurves * pointspertimecurve; i2++)
       {
         for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
-
-        drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)), screen, writer, dowrite, bg, fg);
+        if (changehue)
+        {
+          hue += huespeed;
+          if (hue > 360) hue -= 360;
+        }
+        drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)),
+          screen, writer, dowrite, bg, changehue ? HSVtoRGB(int(hue), 100, 100) : fg);
 
         vector<point>().swap(dispanchors);
         SDL_Event event;
