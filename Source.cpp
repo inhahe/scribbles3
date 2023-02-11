@@ -477,18 +477,17 @@ int parsecommandline(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
   float hue = 160;
+  
   SDL_Init(SDL_INIT_EVERYTHING);
-
-  bool* screen = new bool[w * h];
-
+ 
   if (parsecommandline(argc, argv)) return 0;
-
+  bool* screen = new bool[w * h];
+  
   if (dowrite)
   {
     contiguous = false;
     noloop = false;
   }
-
   SDL_Window* window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
   SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
   SDL_RenderClear(renderer);
