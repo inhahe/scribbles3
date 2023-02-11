@@ -404,9 +404,8 @@ int parsecommandline(int argc, char* argv[])
         "number of curve anchorpoints in space. "
         "increase this to make more complicated shapes.defaults to 30")
       ("timecurves", value<int>(),
-        "number of curve anchorpoints in time per space anchorpoint. "
-        "increase this to make the loops longer when specifying --loop or --file. "
-        "defaults to 5")
+        "number of curves in time per space curve. only applies when --loop or --file is enabled. "
+        "increase this to make the loops longer. defaults to 5")
       ("w", value<int>(), "window width, defaults to 500")
       ("h", value<int>(), "window height, defaults to 500")
       ("bgcolor", value<string>(), "background color, six-digit hex number, defaults to #ffffff, or "
