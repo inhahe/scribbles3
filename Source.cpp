@@ -5,7 +5,6 @@
 #include <iostream>
 #include <gif.h>
 #include <cstring>
-#include <base64.h>
 #include <boost/program_options.hpp>
 #define PI 3.14159265
 
@@ -20,7 +19,7 @@ struct rgb
 
 int pointsperspacecurve = 100;
 int pointspertimecurve = 100;
-int spacecurves = 30; 
+int spacecurves = 30;
 int timecurves = 5;
 int w = 1000;
 int h = 1000;
@@ -32,7 +31,7 @@ bool noloop = true;
 bool contiguous = true;
 string filename = "";
 
-uint8_t *image = new uint8_t[w * h * 4];
+uint8_t* image = new uint8_t[w * h * 4];
 
 void SetPixel(int xx, int yy, uint8_t red, uint8_t grn, uint8_t blu)
 {
@@ -92,7 +91,7 @@ vector<point> plotline(point p1, point p2)
     xd = (p1.x < p2.x) ? 1 : -1;
     y = p1.y;
     x = p1.x;
-    points.push_back(point {x, y});
+    points.push_back(point{ x, y });
     while (x != p2.x)
     {
       x += xd;
@@ -103,7 +102,7 @@ vector<point> plotline(point p1, point p2)
         else y -= xd;
         px += 2 * (dy1 - dx1);
       }
-      points.push_back(point {x, y});
+      points.push_back(point{ x, y });
     }
   }
   else
@@ -111,7 +110,7 @@ vector<point> plotline(point p1, point p2)
     yd = (p1.y < p2.y) ? 1 : -1;
     y = p1.y;
     x = p1.x;
-    points.push_back(point{x, y});
+    points.push_back(point{ x, y });
     while (y != p2.y)
     {
       y += yd;
@@ -125,7 +124,7 @@ vector<point> plotline(point p1, point p2)
         else x -= yd;
         py += 2 * (dx1 - dy1);
       }
-      points.push_back(point {x, y});
+      points.push_back(point{ x, y });
     }
   }
   return points;
@@ -288,7 +287,7 @@ vector<point> createdisploop(vector<point> percpoints)
   return disppoints;
 }
 
-void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints, bool *screen, GifWriter& writer, bool dowrite, rgb bg, rgb fg)
+void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints, bool* screen, GifWriter& writer, bool dowrite, rgb bg, rgb fg)
 {
   int sp = 0;
   for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
@@ -335,13 +334,6 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints, 
   }
   SDL_RenderPresent(renderer);
   if (dowrite) GifWriteFrame(&writer, image, w, h, 2, 8, true);
-}
-
-string decode(string s)
-{
-  string s2 = base64_decode(s);
-  for (char& c : s2) c = c ^ 0b01101001;
-  return s2;
 }
 
 rgb hex2rgb(string s)
@@ -411,7 +403,7 @@ int parsecommandline(int argc, char* argv[])
     if (vm.count("seed")) seed = vm["seed"].as<int>() << '\n';
     if (vm.count("file"))
     {
-      filename = vm["pi"].as<string>();
+      filename = vm["file"].as<string>();
       dowrite = true;
     }
     if (vm.count("spacepoints")) spacecurves = vm["spacepoints"].as<int>();
@@ -435,25 +427,22 @@ int parsecommandline(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
   SDL_Init(SDL_INIT_EVERYTHING);
-     
-  bool* screen = new bool[w*h]; 
 
-  cout << " got here" << endl;
+  bool* screen = new bool[w * h];
+
   if (parsecommandline(argc, argv)) return 0;
-
-  cout << pointspertimecurve << endl; 
 
   if (dowrite)
   {
     contiguous = false;
     noloop = false;
   }
-  
+
   SDL_Window* window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
   SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
   SDL_RenderClear(renderer);
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-  
+
   GifWriter writer = {};
   if (dowrite)
   {
@@ -472,24 +461,24 @@ int main(int argc, char* argv[])
   {
     srand(seed);
   }
-  
+
   cout << "Made by Richard A. Nichols III (Inhahe)" << endl;;
 
   if (noloop)
   {
-  
+
     metapoints* mps = new metapoints[spacecurves];
     for (int i = 0; i < spacecurves; i++) mps[i] = metapoints(w, h, pointspertimecurve, contiguous);
-   
+
     vector<point> dispanchors;
     for (;;)
     {
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
-   
+
       SDL_RenderPresent(renderer);
       drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)), screen, writer, false, bg, fg);
       vector<point>().swap(dispanchors);
-      SDL_Event event; 
+      SDL_Event event;
       SDL_PollEvent(&event);
       if (event.type == SDL_QUIT)
       {
@@ -516,7 +505,7 @@ int main(int argc, char* argv[])
       for (int i2 = 0; i2 < timecurves * pointspertimecurve; i2++)
       {
         for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
-      
+
         drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)), screen, writer, dowrite, bg, fg);
 
         vector<point>().swap(dispanchors);
@@ -536,7 +525,7 @@ int main(int argc, char* argv[])
           }
         }
       }
-      if (filename != "")
+      if (dowrite)
       {
         GifEnd(&writer);
         //delete [] screen;
