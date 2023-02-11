@@ -402,7 +402,7 @@ int parsecommandline(int argc, char* argv[])
         "let you close it until it's done.")
       ("spacecurves", value<int>(),
         "number of curve anchorpoints in space. "
-        "increase this to make more complicated shapes.defaults to 30")
+        "increase this to make more complicated shapes. defaults to 30")
       ("timecurves", value<int>(),
         "number of curves in time per space curve. only applies when --loop or --file is enabled. "
         "increase this to make the loops longer. defaults to 5")

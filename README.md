@@ -13,7 +13,7 @@ Options:
                          and the animation will only loop once, and it won't
                          let you close it until it's done.
   --spacecurves arg      number of curve anchorpoints in space. increase this
-                         to make more complicated shapes.defaults to 30
+                         to make more complicated shapes. defaults to 30
   --timecurves arg       number of curves in time per space curve. only applies
                          when --loop or --file is enabled. increase this to
                          make the loops longer. defaults to 5
