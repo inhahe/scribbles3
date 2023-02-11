@@ -529,6 +529,7 @@ int main(int argc, char* argv[])
       {
         hue += huespeed;
         if (hue > 360) hue -= 360;
+        else if (hue < 0) hue += 360;
       }
       vector<point>().swap(dispanchors);
       SDL_Event event;
