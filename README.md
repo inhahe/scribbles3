@@ -1,6 +1,8 @@
 # scribbles3
 Makes cool animated designs with command-line parameters. Can save to animated gif. 
-For an example of what it does, see https://twitter.com/iyaelsorai/status/1624196182745444352
+For an example of what it does, see https://twitter.com/iyaelsorai/status/1624196182745444352 
+
+I used to draw designs like what this makes, on paper, a long time ago, and for many years I wanted to create it progammatically, but I just couldn't quite figure out how I could do it. But recently I started thinking about it again and coding, and I had a couple of realizations that made it possible.
 
 ```
 Parameters:
