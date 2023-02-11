@@ -5,7 +5,6 @@ For an example of what it does, see https://twitter.com/iyaelsorai/status/162419
 I used to draw designs like what this makes, on paper, a long time ago, and for many years I wanted to create it progammatically, but I just couldn't quite figure out how I could do it. But recently I started thinking about it again and coding, and I had a couple of realizations that made it possible.
 
 ```
-
 Options:
   --help                    This help screen
   --seed arg                randomization seed. use this to get the same exact
@@ -27,7 +26,8 @@ Options:
   --changehue               make fgcolor cycle through the hues. overrides
                             --fgcolor
   --huespeed arg            amount to increment hue per frame if --changehue is
-                            enabled. hue cycles from 0 to 360. defaults to 1.
+                            enabled. ignored if --file or --loop enabled.
+                            defaults to 1. hue cycles from 0 to 360
   --huemult arg             if --loop or --file is enabled and chanehue is
                             enabled, huemult is how many times to cycles
                             through hues per time loop
