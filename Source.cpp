@@ -1,12 +1,10 @@
 #include <SDL.h>
-#include <math.h>       /* sin */
 #include <vector>
 #include <cstdint>
 #include <iostream>
 #include <gif.h>
 #include <cstring>
 #include <boost/program_options.hpp>
-#define PI 3.14159265
 
 using namespace std;
 //namespace po = boost::program_options;
@@ -381,7 +379,7 @@ rgb HSVtoRGB(float H, float S, float V) {
   else if (H < 120) r = X, g = C, b = 0;
   else if (H < 180) r = 0, g = C, b = X;
   else if (H < 240) r = 0, g = X, b = C;
-  else if (H < 300) r = X, g = 0, b = C;
+  else if (H < 300)  r = X, g = 0, b = C;
   else r = C, g = 0, b = X;
   int R = (r + m) * 255;
   int G = (g + m) * 255;
@@ -434,9 +432,6 @@ int parsecommandline(int argc, char* argv[])
         "if incontiguous is not specified, points are connected linearly across time. "
         "try 1 along with --incontiguous to get a rapid-fire succession of unique shapes");
 
-    //("pi", value<float>()->default_value(3.14f), "Pi")
-    //("age", value<int>()->notifier(on_age), "Age");
-
     variables_map vm;
     store(parse_command_line(argc, argv, desc), vm);
     notify(vm);
@@ -483,7 +478,6 @@ int parsecommandline(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
   float hue = 160;
-
   SDL_Init(SDL_INIT_EVERYTHING);
 
   if (parsecommandline(argc, argv)) return 0;
@@ -532,8 +526,8 @@ int main(int argc, char* argv[])
       if (changehue)
       {
         hue += huespeed;
-        if (hue > 360) hue -= 360;
-        else if (hue < 0) hue += 360;
+        if (hue > 360) hue = fmod(hue, 360);
+        else if (hue < 0) hue -= int(hue / 360) * 360 + 360;
       }
       vector<point>().swap(dispanchors);
       SDL_Event event;
@@ -567,7 +561,8 @@ int main(int argc, char* argv[])
         if (changehue)
         {
           hue += huespeed;
-          if (hue > 360) hue -= 360;
+          if (hue > 360) hue = fmod(hue, 360);
+          else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
         drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)),
           screen, writer, dowrite, bg, changehue ? HSVtoRGB(int(hue), sat, val) : fg);
