@@ -62,6 +62,14 @@ float getPt(float n1, float n2, float perc)
   return n1 + diff * perc;
 }
 
+int testbeziersize(int pointspercurve)
+{
+  int r = 0;
+  for (float i2 = 0; i2 < 1; i2 += 1.0 / static_cast <float>(pointspercurve))
+    r++;
+  return r;
+}
+
 vector<point> beziercurve_quadratic(point p1, point p2, point p3, int pointspercurve)
 {
   point p;
@@ -259,6 +267,7 @@ vector<point> createpercloop(vector<point> anchors, int pointspercurve)
     point p1 = anchors[i];
     point p2 = anchors[(i + 1) % s];
     point p3 = anchors[(i + 2) % s];
+
     point p1c, p2c, p3c;
     p1c.x = p1.x + (p2.x - p1.x) / 2;
     p1c.y = p1.y + (p2.y - p1.y) / 2;
@@ -294,7 +303,8 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
   bool* screen, GifWriter& writer, bool dowrite, rgb bg, rgb fg)
 {
   int sp = 0;
-  for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
+  //for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
+  memset(screen, 0, w * h * sizeof(bool));
   enum direction { none, up, down };
   direction ldir = none, dir;
   point lp = { -1, -1 };
@@ -309,7 +319,7 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
       {
         sp = lp.y * w + lp.x;
         screen[sp] = not screen[sp];
-        SDL_RenderDrawPoint(renderer, lp.x, lp.y);
+        //SDL_RenderDrawPoint(renderer, lp.x, lp.y);
       }
       if (i >= s) break;
       ldir = dir;
@@ -439,7 +449,7 @@ int parsecommandline(int argc, char* argv[])
 
     if (vm.count("help"))
     {
-      std::cout << desc;
+      cout << desc;
       r = 1;
     }
     if (vm.count("seed")) seed = vm["seed"].as<int>();
@@ -465,7 +475,7 @@ int parsecommandline(int argc, char* argv[])
     if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
     if (vm.count("huespeed")) huespeed = vm["huespeed"].as<float>();
     if (vm.count("huemult")) huemult = vm["huemult"].as<int>();
-    if (argc == 1) std::cout << desc;
+    if (argc == 1) cout << desc;
   }
   catch (const error& ex)
   {
@@ -477,12 +487,12 @@ int parsecommandline(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
   float hue = 160;
-  
+
   SDL_Init(SDL_INIT_EVERYTHING);
- 
+
   if (parsecommandline(argc, argv)) return 0;
   bool* screen = new bool[w * h];
-  
+
   if (dowrite)
   {
     contiguous = false;
@@ -502,13 +512,13 @@ int main(int argc, char* argv[])
   if (seed == -1)
   {
     seed = time(NULL);
-    std::cout << endl;
-    std::cout << "seed: " << seed << endl;
-    std::cout << endl;
+    cout << endl;
+    cout << "seed: " << seed << endl;
+    cout << endl;
   }
   srand(seed);
 
-  std::cout << "Made by Richard A. Nichols III (Inhahe)" << endl;;
+  cout << "Made by Richard A. Nichols III (Inhahe)" << endl;;
 
   if (noloop)
   {
@@ -520,7 +530,6 @@ int main(int argc, char* argv[])
     for (;;)
     {
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
-
       SDL_RenderPresent(renderer);
       drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, pointsperspacecurve)),
         screen, writer, false, bg, changehue ? HSVtoRGB(hue, 100, 100) : fg);
@@ -552,10 +561,11 @@ int main(int argc, char* argv[])
       timepercanchors[i] = timepercanchors2;
     }
     vector<point> dispanchors;
-    if (changehue) huespeed = 360.0 / (timecurves * (pointspertimecurve+1) * huemult);
+    int bs = testbeziersize(pointspertimecurve);
+    if (changehue) huespeed = 360.0 / (timecurves * bs * huemult);
     for (;;)
     {
-      for (int i2 = 0; i2 < timecurves * (pointspertimecurve+1); i2++)
+      for (int i2 = 0; i2 < timecurves * bs; i2++)
       {
         for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
         if (changehue)
