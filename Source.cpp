@@ -428,7 +428,7 @@ int parsecommandline(int argc, char* argv[])
         "make this 1 for a jagged effect")
       ("timecurvepoints", value<int>(),
         "number of points calculated on each bezier curve of change. "
-        "if incontiguous is not specified, points are connected linearly across time. "
+        "if --incontiguous is not enabled, points are connected linearly across time. "
         "try 1 along with --incontiguous to get a rapid-fire succession of unique shapes");
 
     variables_map vm;

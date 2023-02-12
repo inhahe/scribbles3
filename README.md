@@ -42,7 +42,7 @@ Options:
                          lines are drawn between each point. defaults to 100.
                          make this 1 for a jagged effect
   --timecurvepoints arg  number of points calculated on each bezier curve of
-                         change. if incontiguous is not specified, points are
+                         change. if --incontiguous is not enabled, points are
                          connected linearly across time. try 1 along with
                          --incontiguous to get a rapid-fire succession of
                          unique shapes
