@@ -29,7 +29,7 @@ Options:
                          enabled. ignored if --file or --loop enabled. defaults
                          to 1. hue cycles from 0 to 360
   --huemult arg          if --loop or --file is enabled and --rotatehue is
-                         enabled, --huemult specifies how many times to cycles
+                         enabled, --huemult specifies how many times to cycle
                          through hues per time loop. defaults to 1
   --saturation arg       saturation of colors when using --rotatehue. 1 to 100.
                          defaults to 100

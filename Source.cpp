@@ -415,7 +415,7 @@ int parsecommandline(int argc, char* argv[])
       ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. "
         "ignored if --file or --loop enabled. defaults to 1. hue cycles from 0 to 360")
       ("huemult", value<int>(), "if --loop or --file is enabled and --rotatehue is enabled, --huemult "
-        "specifies how many times to cycles through hues per time loop. defaults to 1")
+        "specifies how many times to cycle through hues per time loop. defaults to 1")
       ("saturation", value<float>(), "saturation of colors when using --rotatehue. 1 to 100. "
         "defaults to 100")
       ("value", value<float>(), "brightness of colors when using --rotatehue. 1 to 100. "
