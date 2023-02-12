@@ -20,7 +20,8 @@ Options:
                          when --loop or --file is enabled. increase this to
                          make the loops longer. defaults to 5
   --w arg                window width. defaults to 1000
-  --h arg                window height.  defaults to 1000
+  --h arg                window height. defaults to 1000. smaller width and
+                         height make the program run faster
   --bgcolor arg          background color, six-digit hex number. defaults to
                          #ffffff, or #000000 if --rotatehue is enabled
   --fgcolor arg          foreground color, six-digit hex number. defaults to
@@ -39,7 +40,8 @@ Options:
                          defaults to 100
   --loop                 loops back on itself in time seamlessly
   --incontiguous         make it so that spacecurves don't move contiguously
-                         through time, but skip pixels
+                         through time, but skip pixels. this will have the
+                         effect of making the animation change faster
   --spacecurvepoints arg number of points calculated on each bezier curve in
                          space. lines are drawn between each point. defaults to
                          100. make this 1 for a jagged effect

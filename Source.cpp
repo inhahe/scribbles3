@@ -408,7 +408,7 @@ int parsecommandline(int argc, char* argv[])
         "number of curves in time per space curve. only applies when --loop or --file is enabled. "
         "increase this to make the loops longer. defaults to 5")
       ("w", value<int>(), "window width. defaults to 1000")
-      ("h", value<int>(), "window height.  defaults to 1000")
+      ("h", value<int>(), "window height. defaults to 1000. smaller width and height make the program run faster")
       ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or "
         "#000000 if --rotatehue is enabled")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
@@ -422,7 +422,8 @@ int parsecommandline(int argc, char* argv[])
       ("value", value<float>(), "brightness of colors when using --rotatehue. 1 to 100. "
         "defaults to 100")
       ("loop", "loops back on itself in time seamlessly")
-      ("incontiguous", "make it so that spacecurves don't move contiguously through time, but skip pixels")
+      ("incontiguous", "make it so that spacecurves don't move contiguously through time, but skip pixels. "
+        "this will have the effect of making the animation change faster")
       ("spacecurvepoints", value<int>(),
         "number of points calculated on each bezier curve in space. "
         "lines are drawn between each point. defaults to 100. "
