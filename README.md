@@ -47,5 +47,5 @@ Options:
                          change. if --incontiguous is not enabled, points are
                          connected linearly across time. try 1 along with
                          --incontiguous to get a rapid-fire succession of
-                         unique shapes
+                         completely different shapes
 ```

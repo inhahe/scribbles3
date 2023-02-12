@@ -430,7 +430,7 @@ int parsecommandline(int argc, char* argv[])
       ("timecurvepoints", value<int>(),
         "number of points calculated on each bezier curve of change. "
         "if --incontiguous is not enabled, points are connected linearly across time. "
-        "try 1 along with --incontiguous to get a rapid-fire succession of unique shapes");
+        "try 1 along with --incontiguous to get a rapid-fire succession of completely different shapes");
 
     variables_map vm;
     store(parse_command_line(argc, argv, desc), vm);
