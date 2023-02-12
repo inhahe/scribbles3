@@ -424,7 +424,7 @@ int parsecommandline(int argc, char* argv[])
       ("loop", "loops back on itself in time seamlessly")
       ("incontiguous", "make it so that spacecurves don't move contiguously through time, but skip pixels")
       ("spacecurvepoints", value<int>(),
-        "number of points calculated on each bezier curve. "
+        "number of points calculated on each bezier curve in space. "
         "lines are drawn between each point. defaults to 100. "
         "make this 1 for a jagged effect")
       ("timecurvepoints", value<int>(),
