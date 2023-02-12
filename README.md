@@ -17,8 +17,8 @@ Options:
   --timecurves arg       number of curves in time per space curve. only applies
                          when --loop or --file is enabled. increase this to
                          make the loops longer. defaults to 5
-  --w arg                window width. defaults to 500
-  --h arg                window height.  defaults to 500
+  --w arg                window width. defaults to 1000
+  --h arg                window height.  defaults to 1000
   --bgcolor arg          background color, six-digit hex number. defaults to
                          #ffffff, or #000000 if --rotatehue is enabled
   --fgcolor arg          foreground color, six-digit hex number. defaults to
