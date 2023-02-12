@@ -19,8 +19,8 @@ int spacecurvepoints = 100;
 int timecurvepoints = 100;
 int spacecurves = 30;
 int timecurves = 5;
-int w = 500;
-int h = 500;
+int w = 1000;
+int h = 1000;
 rgb bg = { 255, 255, 255 };
 rgb fg = { 0, 0, 255 };
 int seed = -1;
@@ -406,8 +406,8 @@ int parsecommandline(int argc, char* argv[])
       ("timecurves", value<int>(),
         "number of curves in time per space curve. only applies when --loop or --file is enabled. "
         "increase this to make the loops longer. defaults to 5")
-      ("w", value<int>(), "window width. defaults to 500")
-      ("h", value<int>(), "window height.  defaults to 500")
+      ("w", value<int>(), "window width. defaults to 1000")
+      ("h", value<int>(), "window height.  defaults to 1000")
       ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or "
         "#000000 if --rotatehue is enabled")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
@@ -472,7 +472,7 @@ int parsecommandline(int argc, char* argv[])
     std::cerr << endl;
     std::cerr << ex.what() << endl;
     std::cerr << endl;
-    std::cerr << "'" << argv[0] << " --help' for command-line arguments" << endl;
+    std::cerr << "'" << argv[0] << " --help' for command-line options" << endl;
     r = 1;
   }
   return r;
