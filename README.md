@@ -31,9 +31,9 @@ Options:
   --huemult arg          if --loop or --file is enabled and --rotatehue is
                          enabled, --huemult specifies how many times to cycles
                          through hues per time loop. defaults to 1
-  --saturation arg       saturation of colors when using --rotatehue. 1 to 100.
+  --saturation arg       saturation of colors when using --rotatehue. 0 to 100.
                          defaults to 100
-  --value arg            brightness of colors when using --rotatehue. 1 to 100.
+  --value arg            brightness of colors when using --rotatehue. 0 to 100.
                          defaults to 100
   --loop                 loops back on itself in time seamlessly
   --incontiguous         make it so that spacecurves don't move contiguously
