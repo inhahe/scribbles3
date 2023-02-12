@@ -8,7 +8,9 @@ I used to draw designs like what this makes, on paper, a long time ago, and for 
 Options:
   --help                 This help screen
   --seed arg             randomization seed. use this to get the same exact
-                         pattern you did before
+                         pattern you got before (but if any option is
+                         different, all similarity given by --seed will be
+                         lost)
   --file arg             if an output file is specified, --loop will be enabled
                          and the animation will only loop once, and it won't
                          let you close it until it's done.

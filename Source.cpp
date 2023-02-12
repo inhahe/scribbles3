@@ -395,7 +395,8 @@ int parsecommandline(int argc, char* argv[])
     options_description desc{ "\nOptions" };
     desc.add_options()
       ("help", "This help screen")
-      ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you did before")
+      ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you got before "
+        "(but if any option is different, all similarity given by --seed will be lost)")
       ("file", value<string>(),
         "if an output file is specified, --loop will be enabled "
         "and the animation will only loop once, and it won't "
