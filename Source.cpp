@@ -550,7 +550,6 @@ int main(int argc, char* argv[])
 
   if (parsecommandline(argc, argv)) return 0;
   noscreen = noscreen && dowrite;
-  cout <<
   if (dowrite)
   {
     contiguous = false;
