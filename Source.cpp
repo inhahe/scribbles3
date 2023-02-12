@@ -700,15 +700,6 @@ int main(int argc, char* argv[])
       }
     }
   }
-  if (dowrite)
-  {
-    GifEnd(&writer);
-    delete [] image;
-    //delete [] screen;
-  //delete [] timepercanchors;
-  }
-  show_console_cursor(true);
-  return 0;
 }  
 
   
