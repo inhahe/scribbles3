@@ -13,7 +13,7 @@ Options:
                          they're any different)
   --file arg             if an output file is specified, --loop will be enabled
                          and the animation will only loop once, and it won't
-                         let you close it until it's done.
+                         let you close it until it's done
   --spacecurves arg      number of curves in space. increase this to make more
                          complicated shapes. defaults to 30
   --timecurves arg       number of curves in time per space curve. only applies

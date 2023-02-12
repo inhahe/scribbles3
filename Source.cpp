@@ -400,7 +400,7 @@ int parsecommandline(int argc, char* argv[])
       ("file", value<string>(),
         "if an output file is specified, --loop will be enabled "
         "and the animation will only loop once, and it won't "
-        "let you close it until it's done.")
+        "let you close it until it's done")
       ("spacecurves", value<int>(),
         "number of curves in space. "
         "increase this to make more complicated shapes. defaults to 30")
