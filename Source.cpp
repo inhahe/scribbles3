@@ -4,6 +4,7 @@
 #include <iostream>
 #include <gif.h>
 #include <cstring>
+#include <windows.h>
 #include <boost/program_options.hpp>
 
 using namespace std;
@@ -14,6 +15,43 @@ struct rgb
 {
   int r, g, b;
 };
+
+void set_cursor(int x = 0, int y = 0)
+{
+  HANDLE handle;
+  COORD coordinates;
+  handle = GetStdHandle(STD_OUTPUT_HANDLE);
+  coordinates.X = x;
+  coordinates.Y = y;
+  SetConsoleCursorPosition(handle, coordinates);
+}
+
+COORD get_cursor()
+{
+  CONSOLE_SCREEN_BUFFER_INFO cbsi;
+  if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cbsi))
+  {
+    return cbsi.dwCursorPosition;
+  }
+  else
+  {
+    // The function failed. Call GetLastError() for details.
+    COORD invalid = { 0, 0 };
+    return invalid;
+  }
+}
+
+void show_console_cursor(const bool show) {
+//#if defined(_WIN32)
+  static const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+  CONSOLE_CURSOR_INFO cci;
+  GetConsoleCursorInfo(handle, &cci);
+  cci.bVisible = show; // show/hide cursor
+  SetConsoleCursorInfo(handle, &cci);
+//#elif defined(__linux__)
+//  cout << (show ? "\033[?25h" : "\033[?25l"); // show/hide cursor
+//#endif // Windows/Linux
+}
 
 int spacecurvepoints = 100;
 int timecurvepoints = 100;
@@ -33,10 +71,9 @@ float huespeed = 1;
 int huemult = 1;
 float sat = 100;
 float val = 100;
+bool noscreen = false;
 
-uint8_t* image = new uint8_t[w * h * 4];
-
-void SetPixel(int xx, int yy, uint8_t red, uint8_t grn, uint8_t blu)
+void SetPixel(uint8_t* image, int xx, int yy, uint8_t red, uint8_t grn, uint8_t blu)
 {
   uint8_t* pixel = &image[(yy * w + xx) * 4];
   pixel[0] = red;
@@ -299,8 +336,8 @@ vector<point> createdisploop(vector<point> percpoints)
   return disppoints;
 }
 
-void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
-  bool* screen, GifWriter& writer, bool dowrite, rgb bg, rgb fg)
+void drawscreen_dowrite(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
+  bool* screen, uint8_t& image, GifWriter& writer, bool dowrite, rgb bg, rgb fg)
 {
   int sp = 0;
   //for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
@@ -319,7 +356,6 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
       {
         sp = lp.y * w + lp.x;
         screen[sp] = not screen[sp];
-        //SDL_RenderDrawPoint(renderer, lp.x, lp.y);
       }
       if (i >= s) break;
       ldir = dir;
@@ -337,18 +373,113 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
       if (dot)
       {
         SDL_SetRenderDrawColor(renderer, fg.r, fg.g, fg.b, 255);
-        if (dowrite) SetPixel(x, y, fg.r, fg.g, fg.b);
+        SetPixel(&image, x, y, fg.r, fg.g, fg.b);
       }
       else
       {
         SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 255);
-        if (dowrite) SetPixel(x, y, bg.r, bg.g, bg.b);
+        SetPixel(&image, x, y, bg.r, bg.g, bg.b);
       }
       SDL_RenderDrawPoint(renderer, x, y);
     }
   }
   SDL_RenderPresent(renderer);
-  if (dowrite) GifWriteFrame(&writer, image, w, h, 2, 8, true);
+  GifWriteFrame(&writer, &image, w, h, 2, 8, true);
+}
+
+void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
+  bool* screen, rgb bg, rgb fg)
+{
+  int sp = 0;
+  //for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
+  memset(screen, 0, w * h * sizeof(bool));
+  enum direction { none, up, down };
+  direction ldir = none, dir;
+  point lp = { -1, -1 };
+  int s = disppoints.size();
+  for (int i = 0; i < s * 2; i++)
+  {
+    point p = disppoints[i % s];
+    if (lp.y != -1 && p.y != lp.y)
+    {
+      dir = p.y < lp.y ? up : down;
+      if (dir == ldir)
+      {
+        sp = lp.y * w + lp.x;
+        screen[sp] = not screen[sp];
+      }
+      if (i >= s) break;
+      ldir = dir;
+    }
+    lp = p;
+  }
+  sp = 0;
+
+  for (int y = 0; y < h; y++)
+  {
+    bool dot = false;
+    for (int x = 0; x < w; x++)
+    {
+      if (screen[++sp]) dot = not dot;
+      if (dot)
+      {
+        SDL_SetRenderDrawColor(renderer, fg.r, fg.g, fg.b, 255);
+      }
+      else
+      {
+        SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 255);
+      }
+      SDL_RenderDrawPoint(renderer, x, y);
+    }
+  }
+  SDL_RenderPresent(renderer);
+}
+
+void drawscreen_nodisp(int w, int h, vector<point> disppoints,
+  bool* screen, uint8_t* image, GifWriter& writer, bool dowrite, rgb bg, rgb fg)
+{
+  int sp = 0;
+  //for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
+  memset(screen, 0, w * h * sizeof(bool));
+  enum direction { none, up, down };
+  direction ldir = none, dir;
+  point lp = { -1, -1 };
+  int s = disppoints.size();
+  for (int i = 0; i < s * 2; i++)
+  {
+    point p = disppoints[i % s];
+    if (lp.y != -1 && p.y != lp.y)
+    {
+      dir = p.y < lp.y ? up : down;
+      if (dir == ldir)
+      {
+        sp = lp.y * w + lp.x;
+        screen[sp] = not screen[sp];
+      }
+      if (i >= s) break;
+      ldir = dir;
+    }
+    lp = p;
+  }
+  sp = 0;
+
+  for (int y = 0; y < h; y++)
+  {
+    bool dot = false;
+    for (int x = 0; x < w; x++)
+    {
+      if (screen[++sp]) dot = not dot;
+      if (dot)
+      {
+        if (dowrite) SetPixel(image, x, y, fg.r, fg.g, fg.b);
+      }
+      else
+      {
+        if (dowrite) SetPixel(image, x, y, bg.r, bg.g, bg.b);
+      }
+    }
+  }
+  GifWriteFrame(&writer, image, w, h, 2, 8, true);
 }
 
 rgb hex2rgb(string s)
@@ -401,6 +532,7 @@ int parsecommandline(int argc, char* argv[])
         "if an output file is specified, --loop will be enabled "
         "and the animation will only loop once, and it won't "
         "let you close it until it's done")
+      ("noscreen", "doesn't display anything. only for use with --file")
       ("spacecurves", value<int>(),
         "number of curves in space. "
         "increase this to make more complicated shapes. defaults to 30")
@@ -449,6 +581,7 @@ int parsecommandline(int argc, char* argv[])
       filename = vm["file"].as<string>();
       dowrite = true;
     }
+    if (vm.count("noscreen")) noscreen = true;
     if (vm.count("spacecurves")) spacecurves = vm["spacecurves"].as<int>();
     if (vm.count("timecurves")) timecurves = vm["timecurves"].as<int>();
     if (vm.count("w")) w = vm["w"].as<int>();
@@ -494,10 +627,9 @@ int main(int argc, char* argv[])
     contiguous = false;
     noloop = false;
   }
-  SDL_Window* window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
-  SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
-  SDL_RenderClear(renderer);
-  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+  noscreen = noscreen && dowrite;
+  SDL_Renderer* renderer;
+  SDL_Window* window;
 
   GifWriter writer = {};
   if (dowrite)
@@ -514,7 +646,7 @@ int main(int argc, char* argv[])
   }
   srand(seed);
 
-  cout << "Made by Richard A. Nichols III (Inhahe)" << endl;;
+  cout << "Made by Richard A. Nichols III (Inhahe)" << endl;;;
 
   if (noloop)
   {
@@ -523,12 +655,17 @@ int main(int argc, char* argv[])
     for (int i = 0; i < spacecurves; i++) mps[i] = metapoints(w, h, timecurvepoints, contiguous);
 
     vector<point> dispanchors;
+
+    window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
+    renderer = SDL_CreateRenderer(window, -1, 0);
+    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
     for (;;)
     {
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
-      SDL_RenderPresent(renderer);
       drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-        screen, writer, false, bg, rotatehue ? HSVtoRGB(hue, sat, val) : fg);
+        screen, bg, rotatehue ? HSVtoRGB(hue, sat, val) : fg);
       if (rotatehue)
       {
         hue += huespeed;
@@ -538,6 +675,7 @@ int main(int argc, char* argv[])
       }
       vector<point>().swap(dispanchors);
       SDL_Event event;
+
       SDL_PollEvent(&event);
       if (event.type == SDL_QUIT)
       {
@@ -560,8 +698,13 @@ int main(int argc, char* argv[])
     vector<point> dispanchors;
     int bs = testbeziersize(timecurvepoints);
     if (rotatehue) huespeed = 360.0 / (timecurves * bs) * huemult;
-    for (;;)
+    if (noscreen) //dowrite must be true
     {
+      int ltime = 0;
+      cout << endl;
+      COORD cursor_pos = get_cursor();
+      show_console_cursor(false);
+      uint8_t* image = new uint8_t[w * h * 4];
       for (int i2 = 0; i2 < timecurves * bs; i2++)
       {
         for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
@@ -571,33 +714,96 @@ int main(int argc, char* argv[])
           if (hue > 360) hue = fmod(hue, 360);
           else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
-        drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-          screen, writer, dowrite, bg, rotatehue ? HSVtoRGB(int(hue), sat, val) : fg);
-
-        vector<point>().swap(dispanchors);
-        SDL_Event event;
-        SDL_PollEvent(&event);
-        if (filename == "")
+        drawscreen_nodisp(w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
+          screen, image, writer, dowrite, bg, rotatehue ? HSVtoRGB(int(hue), sat, val) : fg);
+        set_cursor(cursor_pos.X, cursor_pos.Y);
+        if (time(NULL) > ltime)
         {
-          if (event.type == SDL_QUIT)
-          {
-            SDL_DestroyWindow(window);
-            SDL_DestroyRenderer(renderer);
-            SDL_Quit();
-            //delete [] screen;
-            //delete [] timepercanchors;
-            delete image;
-            return 0;
-          }
+          cout << int(float(i2) / float(timecurves * bs) * 100) << "%";
+          ltime = time(NULL);
         }
+        vector<point>().swap(dispanchors);
       }
+      show_console_cursor(false);
+      GifEnd(&writer);
+      //delete [] screen;
+      //delete [] timepercanchors;
+      delete image;
+      return 0;
+    }
+    else
+    {
+      window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
+      renderer = SDL_CreateRenderer(window, -1, 0);
+      SDL_RenderClear(renderer);
+      SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
       if (dowrite)
       {
+        int ltime = 0;
+        cout << endl;
+        COORD cursor_pos = get_cursor();
+        show_console_cursor(false);
+        uint8_t* image = new uint8_t[w * h * 4];
+        for (int i2 = 0; i2 < timecurves * bs; i2++)
+        {
+          for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
+          if (rotatehue)
+          {
+            hue += huespeed;
+            if (hue > 360) hue = fmod(hue, 360);
+            else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
+          }
+          drawscreen_dowrite(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
+            screen, *image, writer, dowrite, bg, rotatehue ? HSVtoRGB(int(hue), sat, val) : fg);
+          set_cursor(cursor_pos.X, cursor_pos.Y);
+          if (time(NULL) > ltime)
+          {
+            cout << int(float(i2) / float(timecurves * bs) * 100) << "%";
+            ltime = time(NULL);
+          }
+
+          vector<point>().swap(dispanchors);          SDL_Event event;
+          SDL_PollEvent(&event);
+        }
         GifEnd(&writer);
         //delete [] screen;
         //delete [] timepercanchors;
         delete image;
-        return 0;
+        show_console_cursor(true);
+      }
+      else
+      {
+        for (;;)
+        {
+          for (int i2 = 0; i2 < timecurves * bs; i2++)
+          {
+            for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
+            if (rotatehue)
+            {
+              hue += huespeed;
+              if (hue > 360) hue = fmod(hue, 360);
+              else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
+            }
+            drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
+              screen, bg, rotatehue ? HSVtoRGB(int(hue), sat, val) : fg);
+
+            vector<point>().swap(dispanchors);
+            SDL_Event event;
+            SDL_PollEvent(&event);
+            if (not dowrite)
+            {
+              if (event.type == SDL_QUIT)
+              {
+                SDL_DestroyWindow(window);
+                SDL_DestroyRenderer(renderer);
+                SDL_Quit();
+                //delete [] screen;
+                //delete [] timepercanchors;
+                return  0;
+              }
+            }
+          }
+        }
       }
     }
   }
