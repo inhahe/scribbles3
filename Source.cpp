@@ -401,7 +401,7 @@ int parsecommandline(int argc, char* argv[])
         "and the animation will only loop once, and it won't "
         "let you close it until it's done.")
       ("spacecurves", value<int>(),
-        "number of curve anchorpoints in space. "
+        "number of curves in space. "
         "increase this to make more complicated shapes. defaults to 30")
       ("timecurves", value<int>(),
         "number of curves in time per space curve. only applies when --loop or --file is enabled. "

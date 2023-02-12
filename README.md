@@ -12,8 +12,8 @@ Options:
   --file arg             if an output file is specified, --loop will be enabled
                          and the animation will only loop once, and it won't
                          let you close it until it's done.
-  --spacecurves arg      number of curve anchorpoints in space. increase this
-                         to make more complicated shapes. defaults to 30
+  --spacecurves arg      number of curves in space. increase this to make more
+                         complicated shapes. defaults to 30
   --timecurves arg       number of curves in time per space curve. only applies
                          when --loop or --file is enabled. increase this to
                          make the loops longer. defaults to 5
@@ -31,9 +31,9 @@ Options:
   --huemult arg          if --loop or --file is enabled and --rotatehue is
                          enabled, --huemult specifies how many times to cycles
                          through hues per time loop. defaults to 1
-  --saturation arg       saturation of colors when using --rotatehue. 0 to 100.
+  --saturation arg       saturation of colors when using --rotatehue. 1 to 100.
                          defaults to 100
-  --value arg            brightness of colors when using --rotatehue. 0 to 100.
+  --value arg            brightness of colors when using --rotatehue. 1 to 100.
                          defaults to 100
   --loop                 loops back on itself in time seamlessly
   --incontiguous         make it so that spacecurves don't move contiguously
