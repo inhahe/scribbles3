@@ -4,7 +4,7 @@ For an example of what it does, see https://twitter.com/iyaelsorai/status/162419
 
 I used to draw designs like what this makes, on paper, a long time ago, and for many years I wanted to create it progammatically, but I just couldn't quite figure out how I could do it. But recently I started thinking about it again and coding, and I had a couple of realizations that made it possible.
 
-I *was* proud of this program until I ended up with way too much in main() and a lot of redundant code because I couldn't figure out how to get around C++ complaining that I could possibly use an uninitialized pointer when I want to use them conditionally, only when they happen to be initialized.
+I *was* proud of this program until I ended up with way too much in main() and a lot of redundant code because I couldn't figure out how to get around C++ complaining that I could possibly use an uninitialized pointer when I wanted to use them conditionally, only when they happen to be initialized.
 
 ```
 Options:
