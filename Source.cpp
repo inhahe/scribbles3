@@ -16,6 +16,28 @@ struct rgb
   int r, g, b;
 };
 
+
+int spacecurvepoints = 100;
+int timecurvepoints = 100;
+int spacecurves = 30;
+int timecurves = 5;
+int w = 1000;
+int h = 1000;
+rgb bg = { 255, 255, 255 };
+rgb fg = { 0, 0, 255 };
+int seed = -1;
+bool dowrite = false;
+bool noloop = true;
+bool contiguous = true;
+string filename = "";
+bool rotatehue = false;
+float huespeed = 1;
+int huemult = 1;
+float sat = 100;
+float val = 100;
+bool noscreen = false;
+bool running = true;
+
 void set_cursor(int x = 0, int y = 0)
 {
   HANDLE handle;
@@ -52,26 +74,6 @@ void show_console_cursor(const bool show) {
 //  cout << (show ? "\033[?25h" : "\033[?25l"); // show/hide cursor
 //#endif // Windows/Linux
 }
-
-int spacecurvepoints = 100;
-int timecurvepoints = 100;
-int spacecurves = 30;
-int timecurves = 5;
-int w = 1000;
-int h = 1000;
-rgb bg = { 255, 255, 255 };
-rgb fg = { 0, 0, 255 };
-int seed = -1;
-bool dowrite = false;
-bool noloop = true;
-bool contiguous = true;
-string filename = "";
-bool rotatehue = false;
-float huespeed = 1;
-int huemult = 1;
-float sat = 100;
-float val = 100;
-bool noscreen = false;
 
 void SetPixel(uint8_t* image, int xx, int yy, uint8_t red, uint8_t grn, uint8_t blu)
 {
@@ -614,8 +616,25 @@ int parsecommandline(int argc, char* argv[])
   return r;
 }
 
+BOOL WINAPI consoleHandler(DWORD signal) {
+
+  if (signal == CTRL_C_EVENT)
+  {
+    if (dowrite)
+    {
+      show_console_cursor(true);
+      cout << "\a";
+      cout << "Warning: Writing to file has been aborted. File is not complete. It will not loop properly." << endl;
+      running = false;
+    }
+  }
+  return not running;
+}
+
 int main(int argc, char* argv[])
 {
+  int ltime = 0;
+  SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
   float hue = 160;
   SDL_Init(SDL_INIT_EVERYTHING);
 
@@ -675,7 +694,6 @@ int main(int argc, char* argv[])
       }
       vector<point>().swap(dispanchors);
       SDL_Event event;
-
       SDL_PollEvent(&event);
       if (event.type == SDL_QUIT)
       {
@@ -700,13 +718,19 @@ int main(int argc, char* argv[])
     if (rotatehue) huespeed = 360.0 / (timecurves * bs) * huemult;
     if (noscreen) //dowrite must be true
     {
-      int ltime = 0;
       cout << endl;
       COORD cursor_pos = get_cursor();
       show_console_cursor(false);
       uint8_t* image = new uint8_t[w * h * 4];
       for (int i2 = 0; i2 < timecurves * bs; i2++)
       {
+        if (not running)
+        {
+          show_console_cursor(true);
+          cout << "\a";
+          cout << "Warning: Writing to file has been aborted. File is not complete. It will not loop properly." << endl;
+          return  0;
+        }
         for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
         if (rotatehue)
         {
@@ -739,13 +763,22 @@ int main(int argc, char* argv[])
       SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
       if (dowrite)
       {
-        int ltime = 0;
         cout << endl;
         COORD cursor_pos = get_cursor();
         show_console_cursor(false);
         uint8_t* image = new uint8_t[w * h * 4];
         for (int i2 = 0; i2 < timecurves * bs; i2++)
         {
+          if (not running)
+          {
+            SDL_DestroyWindow(window);
+            SDL_DestroyRenderer(renderer);
+            SDL_Quit();
+            show_console_cursor(true);
+            cout << "\a";
+            cout << "Warning: Writing to file has been aborted. File is not complete. It will not loop properly." << endl;
+            return  0;
+          }
           for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
           if (rotatehue)
           {
@@ -762,8 +795,23 @@ int main(int argc, char* argv[])
             ltime = time(NULL);
           }
 
-          vector<point>().swap(dispanchors);          SDL_Event event;
+          vector<point>().swap(dispanchors);     
+          SDL_Event event;
           SDL_PollEvent(&event);
+       
+          if (event.type == SDL_QUIT)
+          {
+            SDL_DestroyWindow(window);
+            SDL_DestroyRenderer(renderer);
+            SDL_Quit();
+            //delete [] screen;
+            //delete [] timepercanchors;
+            show_console_cursor(true); 
+            cout << "\a";
+            cout << "Warning: Writing to file has been aborted. File is not complete. It will not loop properly." << endl;
+            return  0;
+          }
+         
         }
         GifEnd(&writer);
         //delete [] screen;
@@ -790,19 +838,18 @@ int main(int argc, char* argv[])
             vector<point>().swap(dispanchors);
             SDL_Event event;
             SDL_PollEvent(&event);
-            if (not dowrite)
+            
+            if (event.type == SDL_QUIT)
             {
-              if (event.type == SDL_QUIT)
-              {
-                SDL_DestroyWindow(window);
-                SDL_DestroyRenderer(renderer);
-                SDL_Quit();
-                //delete [] screen;
-                //delete [] timepercanchors;
-                return  0;
-              }
+              SDL_DestroyWindow(window);
+              SDL_DestroyRenderer(renderer);
+              SDL_Quit();
+              //delete [] screen;
+              //delete [] timepercanchors;
+              return  0;
             }
-          }
+            
+        }
         }
       }
     }
