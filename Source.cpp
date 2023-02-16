@@ -381,7 +381,7 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
         if (not noscreen) SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 255);
         if (dowrite) SetPixel(&image, x, y, bg.r, bg.g, bg.b);
       }
-      SDL_RenderDrawPoint(renderer, x, y);
+      if (not noscreen) SDL_RenderDrawPoint(renderer, x, y);
     }
   }
   if (not noscreen) SDL_RenderPresent(renderer);
