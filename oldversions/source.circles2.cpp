@@ -6,6 +6,7 @@
 #include <cstring>
 #include <windows.h>
 #include <boost/program_options.hpp>
+#include <random>
 using namespace std;
 using namespace  boost::program_options;
 
@@ -14,27 +15,26 @@ struct rgb
   int r, g, b;
 };
 
-
-int spacecurvepoints = 100;
 int timecurvepoints = 100;
-int spacecurves = 30;
 int timecurves = 5;
 int w = 1000;
 int h = 1000;
 rgb bg = { 255, 255, 255 };
-rgb fg = { 0, 0, 255 };
+rgb fg = { 0, 0, 0 };
 int seed = -1;
 bool dowrite = false;
 bool noloop = true;
 bool contiguous = true;
 string filename = "";
-bool rotatehue = false;
-float huespeed = 1;
-int huemult = 1;
 float sat = 100;
 float val = 100;
 bool noscreen = false;
 bool running = true;
+int num_circles = 3;
+float speed_dist_mean = 1;
+float speed_dist_sd = .5;
+float size_dist_mean = 100;
+float size_dist_sd = 50;
 
 void set_cursor(int x = 0, int y = 0)
 {
@@ -62,15 +62,15 @@ COORD get_cursor()
 }
 
 void show_console_cursor(const bool show) {
-//#if defined(_WIN32)
+  //#if defined(_WIN32)
   static const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
   CONSOLE_CURSOR_INFO cci;
   GetConsoleCursorInfo(handle, &cci);
   cci.bVisible = show; // show/hide cursor
   SetConsoleCursorInfo(handle, &cci);
-//#elif defined(__linux__)
-//  cout << (show ? "\033[?25h" : "\033[?25l"); // show/hide cursor
-//#endif // Windows/Linux
+  //#elif defined(__linux__)
+  //  cout << (show ? "\033[?25h" : "\033[?25l"); // show/hide cursor
+  //#endif // Windows/Linux
 }
 
 void SetPixel(uint8_t* image, int xx, int yy, uint8_t red, uint8_t grn, uint8_t blu)
@@ -336,52 +336,59 @@ vector<point> createdisploop(vector<point> percpoints)
   return disppoints;
 }
 
-void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
-  bool* screen, uint8_t& image, GifWriter& writer, bool noscreen, bool dowrite, rgb bg, rgb fg)
-
+class circle
 {
-  int sp = 0;
-  //for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
-  memset(screen, 0, w * h * sizeof(bool));
-  enum direction { none, up, down };
-  direction ldir = none, dir;
-  point lp = { -1, -1 };
-  int s = disppoints.size();
-  for (int i = 0; i < s * 2; i++)
+public:
+  float phase, speed;
+  int size;
+  metapoints mp;
+  point pos;
+ 
+  circle()
   {
-    point p = disppoints[i % s];
-    if (lp.y != -1 && p.y != lp.y)
-    {
-      dir = p.y < lp.y ? up : down;
-      if (dir == ldir)
-      {
-        sp = lp.y * w + lp.x;
-        screen[sp] = not screen[sp];
-      }
-      if (i >= s) break;
-      ldir = dir;
-    }
-    lp = p;
   }
-  sp = 0;
+  circle(int w, int h, int pointspercurve, bool contiguous, default_random_engine generator, float speed_dist_mean, float speed_dist_sd, float size_dist_mean, float size_dist_sd)
+  {
+    //default_random_engine generator(rand()); 
+    normal_distribution<double> speed_distribution(speed_dist_mean, speed_dist_sd);
+    normal_distribution<double> size_distribution(size_dist_mean, size_dist_sd);
+    this->speed = speed_distribution(generator);
+    this->size = size_distribution(generator);
+   // while (this->speed <= 0) this->speed = speed_distribution(generator);// why tf doesn't this work?
+    //while (this->size <= 0) this->size = size_distribution(generator);
+    this->phase = 0;
+    this->mp = metapoints(w, h, pointspercurve, contiguous);
+  }
+  void advance()
+  {
+    this->phase -= this->speed;
+    if (this->phase < 0) this->phase += int(abs(this->phase) / this->size) * this->size + this->size;
+   // this->phase = fmod(this->phase + this->speed, this->size);
+    this->pos = this->mp.getpoint();
+  }
+};
 
+
+void drawscreen(SDL_Renderer* renderer, int w, int h, circle circles[], int num_circles, bool* screen, uint8_t& image, GifWriter& writer, bool noscreen, bool dowrite, rgb bg, rgb fg)
+{
   for (int y = 0; y < h; y++)
   {
-    bool dot = false;
     for (int x = 0; x < w; x++)
     {
-      if (screen[++sp]) dot = not dot;
-      if (dot)
+      bool isfg = false;
+      rgb color;
+      for (int i = 0; i < num_circles; i++)
       {
-        if (not noscreen) SDL_SetRenderDrawColor(renderer, fg.r, fg.g, fg.b, 255);
-        if (dowrite) SetPixel(&image, x, y, fg.r, fg.g, fg.b);
+        circle c = circles[i];
+        point p = c.pos;
+        int dx = (x - p.x);
+        int dy = (y - p.y);
+        isfg = isfg xor (fmod(sqrt(dx * dx + dy * dy) + c.phase, c.size) < (c.size / 2.0));
       }
-      else
-      {
-        if (not noscreen) SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 255);
-        if (dowrite) SetPixel(&image, x, y, bg.r, bg.g, bg.b);
-      }
-      SDL_RenderDrawPoint(renderer, x, y);
+      color = isfg ? fg : bg;
+      if (not noscreen) SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255);
+      if (dowrite) SetPixel(&image, x, y, color.r, color.g, color.b);
+      if (not noscreen) SDL_RenderDrawPoint(renderer, x, y);
     }
   }
   if (not noscreen) SDL_RenderPresent(renderer);
@@ -438,9 +445,7 @@ int parsecommandline(int argc, char* argv[])
       ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you got before "
         "(but some of the other options will eliminate all similarity in the pattern if they're any different)")
       ("file", value<string>(),
-        "if an output file is specified, --loop will be enabled "
-        "and the animation will only loop once, and it won't "
-        "let you close it until it's done")
+        "if an output file is specified, --loop will be enabled, and the animation will stop after one loop")
       ("noscreen", "doesn't display anything. only for use with --file")
       ("spacecurves", value<int>(),
         "number of curves in space. "
@@ -450,18 +455,8 @@ int parsecommandline(int argc, char* argv[])
         "increase this to make the loops longer. defaults to 5")
       ("w", value<int>(), "window width. defaults to 1000")
       ("h", value<int>(), "window height. defaults to 1000. smaller width and height make the program run faster")
-      ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or "
-        "#000000 if --rotatehue is enabled")
+      ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
-      ("rotatehue", "make fgcolor cycle through the hues. overrides --fgcolor")
-      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. "
-        "ignored if --file or --loop is enabled. defaults to 1. hue cycles from 0 to 360")
-      ("huemult", value<int>(), "if --loop or --file is enabled and --rotatehue is enabled, --huemult "
-        "specifies how many times to cycle through hues per time loop. defaults to 1")
-      ("saturation", value<float>(), "saturation of colors when using --rotatehue. 1 to 100. "
-        "defaults to 100")
-      ("value", value<float>(), "brightness of colors when using --rotatehue. 1 to 100. "
-        "defaults to 100")
       ("loop", "loops back on itself in time seamlessly")
       ("incontiguous", "make it so that spacecurves don't move contiguously through time, but skip pixels. "
         "this will have the effect of making the animation change faster. --incontiguous is automatically "
@@ -491,25 +486,16 @@ int parsecommandline(int argc, char* argv[])
       dowrite = true;
     }
     if (vm.count("noscreen")) noscreen = true;
-    if (vm.count("spacecurves")) spacecurves = vm["spacecurves"].as<int>();
     if (vm.count("timecurves")) timecurves = vm["timecurves"].as<int>();
     if (vm.count("w")) w = vm["w"].as<int>();
     if (vm.count("h")) h = vm["h"].as<int>();
     if (vm.count("fgcolor")) fg = hex2rgb(vm["fgcolor"].as<string>());
     if (vm.count("loop")) noloop = false;
     if (vm.count("incontiguous")) contiguous = false;
-    if (vm.count("spacecurvepoints")) spacecurvepoints = vm["spacecurvepoints"].as<int>();
     if (vm.count("timecurvepoints")) timecurvepoints = vm["timecurvepoints"].as<int>();
-    if (vm.count("rotatehue"))
-    {
-      rotatehue = true;
-      bg = { 0, 0, 0 };
-    }
     if (vm.count("saturation")) sat = vm["saturation"].as<float>();
     if (vm.count("value")) val = vm["value"].as<float>();
     if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
-    if (vm.count("huespeed")) huespeed = vm["huespeed"].as<float>();
-    if (vm.count("huemult")) huemult = vm["huemult"].as<int>();
     if (argc == 1) cout << desc;
   }
   catch (const error& ex)
@@ -544,6 +530,8 @@ BOOL WINAPI consoleHandler(DWORD signal) {
 
 int main(int argc, char* argv[])
 {
+  
+
   int ltime = 0;
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
   float hue = 160;
@@ -562,7 +550,7 @@ int main(int argc, char* argv[])
   SDL_Window* window = nullptr;
   SDL_Event event;
   vector<point> dispanchors;
-  vector<point>* timepercanchors = new vector<point>[spacecurves];
+  vector<point>* timepercanchors = new vector<point>[num_circles];
   int bs = testbeziersize(timecurvepoints);
 
   if (dowrite)
@@ -584,7 +572,7 @@ int main(int argc, char* argv[])
   if (dowrite) cout << endl;
   COORD cursor_pos = get_cursor();
   if (dowrite) show_console_cursor(false);
-  if(not noscreen)
+  if (not noscreen)
   {
     SDL_Init(SDL_INIT_EVERYTHING);
     window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
@@ -594,22 +582,20 @@ int main(int argc, char* argv[])
 
   if (noloop)
   {
-    metapoints* mps = new metapoints[spacecurves];
-    for (int i = 0; i < spacecurves; i++) mps[i] = metapoints(w, h, timecurvepoints, contiguous);
-
+    default_random_engine generator;
+    circle* circles = new circle[num_circles];
+    for (int i = 0; i < num_circles; i++)
+    {
+      generator = default_random_engine(rand());
+      circles[i] = circle(w, h, timecurvepoints, contiguous, generator, speed_dist_mean, speed_dist_sd, size_dist_mean, size_dist_sd);
+    }
     for (;;)
     {
-      for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
-      drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-        screen, *image, writer, noscreen, dowrite, bg, rotatehue ? HSVtoRGB(hue, sat, val) : fg);
-      if (rotatehue)
+      for (int i = 0; i < num_circles; i++)
       {
-        hue += huespeed;
-        if (hue > 360) hue = fmod(hue, 360);
-        else if (hue < 0) hue += int(abs(hue) / 360) * 360 + 360;
-        //why the hell doesn't hue -= (int(hue) / 360) * 360 + 360; work?
+        circles[i].advance();
       }
-      vector<point>().swap(dispanchors);
+      drawscreen(renderer, w, h, circles, num_circles, screen, *image, writer, noscreen, dowrite, bg, fg);
       if (not noscreen)
       {
         SDL_PollEvent(&event);
@@ -623,6 +609,7 @@ int main(int argc, char* argv[])
       }
     }
   }
+  /*
   else
   {
     for (int i = 0; i < spacecurves; i++)
@@ -631,41 +618,7 @@ int main(int argc, char* argv[])
       auto timepercanchors2 = createpercloop(timeanchors, timecurvepoints);
       timepercanchors[i] = timepercanchors2;
     }
-    for (;;)
-    {
-      image = new uint8_t[w * h * 4];
-      for (int i2 = 0; i2 < timecurves * bs; i2++)
-      {
-        if (not running)
-        {
-          SDL_DestroyWindow(window);
-          SDL_DestroyRenderer(renderer);
-          SDL_Quit();
-          show_console_cursor(true);
-          cout << "\a";
-          cout << "Warning: Writing to file has been aborted. File is not complete. It will not loop properly." << endl;
-          return  0;
-        }
-        for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
-        if (rotatehue)
-        {
-          hue += huespeed;
-          if (hue > 360) hue = fmod(hue, 360);
-          else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
-        }
-        drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-          screen, *image, writer, noscreen, dowrite, bg, rotatehue ? HSVtoRGB(int(hue), sat, val) : fg);
-        set_cursor(cursor_pos.X, cursor_pos.Y);
-        if (dowrite)
-        {
-          if (time(NULL) > ltime)
-          {
-            cout << int(float(i2) / float(timecurves * bs) * 100) << "%";
-            ltime = time(NULL);
-          }
-        }
-        vector<point>().swap(dispanchors);
-
+  
         if (not noscreen)
         {
           SDL_PollEvent(&event);
@@ -700,6 +653,7 @@ int main(int argc, char* argv[])
       }
     }
   }
-}  
+  */
+}
 
-  
+
