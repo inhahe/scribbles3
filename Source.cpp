@@ -7,7 +7,7 @@
 #include <windows.h>
 #include <boost/program_options.hpp>
 using namespace std;
-using namespace  boost::program_options;
+using namespace boost::program_options;
 
 struct rgb
 {
@@ -438,7 +438,8 @@ int parsecommandline(int argc, char* argv[])
       ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you got before "
         "(but some of the other options will eliminate all similarity in the pattern if they're any different)")
       ("file", value<string>(),
-        "if an output file is specified, --loop will be enabled, and the animation will stop after one loop")
+        "if an output file is specified, --loop will be enabled, and the animation will stop after one loop. "
+        "filename extension should be \"gif\"")
       ("noscreen", "doesn't display anything. only for use with --file")
       ("spacecurves", value<int>(),
         "number of curves in space. "
