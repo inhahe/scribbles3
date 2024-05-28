@@ -1,8 +1,19 @@
 # scribbles3
 Makes cool animated designs with command-line parameters. Can save to animated gif. 
-For some examples of what it can do, see the following:
 
-https://twitter.com/iyaelsorai/status/1624196182745444352, https://twitter.com/iyaelsorai/status/1624674315085004800, https://twitter.com/iyaelsorai/status/1624685987644289028, https://twitter.com/iyaelsorai/status/1624686369346912256, https://twitter.com/iyaelsorai/status/1624687321143513089, https://twitter.com/iyaelsorai/status/1624688246864199680
+Here are some examples of what it can do:
+
+https://github.com/inhahe/scribbles3/assets/61786/cffeeaa4-bd37-4ad0-9112-f68147231c83
+
+![1624674315085004800](https://github.com/inhahe/scribbles3/assets/61786/cb0a4fa8-816a-4c80-9ff6-56e0f8384e70)
+
+https://github.com/inhahe/scribbles3/assets/61786/46d32be5-dce7-43c8-be1a-e2405b74e06f
+
+![1624686369346912256](https://github.com/inhahe/scribbles3/assets/61786/6d781b73-be81-4845-b4e8-6086bc4d58e0)
+
+![1624687321143513089](https://github.com/inhahe/scribbles3/assets/61786/7fc76eac-9582-4554-ba47-76b23124a2ee)
+
+![1624688246864199680](https://github.com/inhahe/scribbles3/assets/61786/b960cde4-002e-4253-bb45-e34b2da05822)
 
 I used to draw designs like what this makes, on paper, a long time ago, and for many years I wanted to create it progammatically, but I just couldn't quite figure out how I could do it. But recently I started thinking about it again and coding, and I had a couple of realizations that made it possible.
 
