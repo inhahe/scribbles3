@@ -586,7 +586,7 @@ int main(int argc, char* argv[])
   if(not noscreen)
   {
     SDL_Init(SDL_INIT_EVERYTHING);
-    window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
+    window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI);
     renderer = SDL_CreateRenderer(window, -1, 0);
     SDL_RenderClear(renderer);
   }
