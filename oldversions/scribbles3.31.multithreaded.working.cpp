@@ -1,5 +1,3 @@
-//change screen[++sp] to sp_screen
-
 #include <SDL.h>
 #include <vector>
 #include <cstdint>
@@ -338,37 +336,32 @@ vector<point> createdisploop(vector<point> percpoints)
   return disppoints;
 }
 
-void drawslice(SDL_Renderer* renderer, int w, int starty, int endy, bool* screen, uint8_t* image, bool noscreen, bool dowrite, Uint32 fgint, Uint32 bgint, uint8_t* pixels, int pitch)
+void drawslice(SDL_Renderer* renderer, int w, int starty, int endy, bool* screen, uint8_t* image)
 {
-  //bgint = 0xffffffff;
-  //fgint = 0xffffffff; //debug
-
-  bool* sp_screen = screen + starty * w;
-  uint8_t* sp_pixels = nullptr;
+  int sp = starty * w;
   for (int y = starty; y <= endy; y++)
   {
-    sp_pixels = pixels + y * pitch;
     bool dot = false;
     for (int x = 0; x < w; x++)
     {
-      if (*(++sp_screen)) dot = not dot;
+      if (screen[++sp]) dot = not dot;
       if (dot)
       {
-        if (not noscreen) *(uint32_t*)sp_pixels = fgint;
+        if (not noscreen) SDL_SetRenderDrawColor(renderer, fg.r, fg.g, fg.b, 255);
         if (dowrite) SetPixel(image, x, y, fg.r, fg.g, fg.b);
       }
       else
       {
-        if (not noscreen) *(uint32_t*) sp_pixels = bgint;
+        if (not noscreen) SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 255);
         if (dowrite) SetPixel(image, x, y, bg.r, bg.g, bg.b);
       }
-      sp_pixels += 4;
+      if (not noscreen) SDL_RenderDrawPoint(renderer, x, y);
     }
   }
 }
 
 void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
-  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, Uint32 bgint, Uint32 fgint, int num_threads, SDL_Texture* texture)
+  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, rgb bg, rgb fg, int num_threads)
 {
   //for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
   memset(screen, 0, w * h * sizeof(bool));
@@ -377,8 +370,6 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
   point lp = { -1, -1 };
   int sp = 0;
   int s = disppoints.size();
-  uint8_t* pixels;
-  int pitch;
   for (int i = 0; i < s * 2; i++)
   {
     point p = disppoints[i % s];
@@ -401,23 +392,15 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
   //std::vector<std::thread> threads(num_threads);
 
   int ys_per_thread = h / num_threads;
-  int lock_result = SDL_LockTexture(texture, NULL, (void**)&pixels, &pitch);
-  if (lock_result != 0) 
-  {
-    cout << SDL_GetError() << endl;
-    exit(EXIT_FAILURE);
-  }
-
   for (int t = 0; t < num_threads; t++)
   {
     int starty = ys_per_thread * t;
     int endy = starty + ys_per_thread - 1;
     if (endy > h - 1) endy = h - 1;
-    threads[t] = std::thread(drawslice, renderer, w, starty, endy, screen, image, noscreen, dowrite, fgint, bgint, pixels, pitch);
+    threads[t] = std::thread(drawslice, renderer, w, starty, endy, screen, image);
     threads[t].join();
   }
-  SDL_UnlockTexture(texture);
-  SDL_RenderCopy(renderer, texture, NULL, NULL);
+  
   if (not noscreen) SDL_RenderPresent(renderer);
   if (dowrite)
   {
@@ -594,11 +577,8 @@ int main(int argc, char* argv[])
 
   bool* screen = new bool[w * h];
   uint8_t* image = nullptr;
-  //Uint8* pixels = nullptr;
-  SDL_Texture* texture = nullptr;
   SDL_Renderer* renderer = nullptr;
   SDL_Window* window = nullptr;
-  SDL_PixelFormat* pixel_format = nullptr;
   SDL_Event event;
   vector<point> dispanchors;
   vector<point>* timepercanchors = new vector<point>[spacecurves];
@@ -629,12 +609,6 @@ int main(int argc, char* argv[])
     window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI);
     renderer = SDL_CreateRenderer(window, -1, 0);
     SDL_RenderClear(renderer);
-    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, w, h);
-    pixel_format = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888);
-    if (texture == NULL) {
-      cout << SDL_GetError() << endl;
-      exit(EXIT_FAILURE);
-    }
   }
 
   if (noloop)
@@ -645,15 +619,8 @@ int main(int argc, char* argv[])
     for (;;)
     {
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
-      //Uint32 bgint = bg.r << 24 + bg.g << 16 + bg.b << 8 + 0xff;
-      //Uint32 bgint = 0xff000000 + bg.r << 16 + bg.g << 8 + bg.r;
-      Uint32 bgint = SDL_MapRGBA(pixel_format, bg.r, bg.g, bg.b, 0xff);
-      if (rotatehue) fg = HSVtoRGB(hue, sat, val);
-      //Uint32 fgint = fg.r << 24 + fg.g << 16 + fg.b << 8 + 0xff;
-      //Uint32 fgint = 0xff000000 + fg.r << 16 + fg.g << 8 + fg.r;
-      Uint32 fgint = SDL_MapRGBA(pixel_format, fg.r, fg.g, fg.b, 0xff);
       drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-        screen, image, writer, noscreen, dowrite, bgint, fgint, num_threads, texture);
+        screen, image, writer, noscreen, dowrite, bg, rotatehue ? HSVtoRGB(hue, sat, val) : fg, num_threads);
       if (rotatehue)
       {
         hue += huespeed;
@@ -705,15 +672,8 @@ int main(int argc, char* argv[])
           if (hue > 360) hue = fmod(hue, 360);
           else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
-        //Uint32 bgint = bg.r << 24 + bg.g << 16 + bg.b << 8 + 0xff;
-         //Uint32 bgint = 0xff000000 + bg.r << 16 + bg.g << 8 + bg.r;
-        Uint32 bgint = SDL_MapRGBA(pixel_format, bg.r, bg.g, bg.b, 0xff);
-        if (rotatehue) fg = HSVtoRGB(hue, sat, val);
-        //Uint32 fgint = fg.r << 24 + fg.g << 16 + fg.b << 8 + 0xff;
-        //Uint32 fgint = 0xff000000 + fg.r << 16 + fg.g << 8 + fg.r;
-        Uint32 fgint = SDL_MapRGBA(pixel_format, fg.r, fg.g, fg.b, 0xff);
         drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-          screen, image, writer, noscreen, dowrite, bgint, fgint, num_threads, texture);
+          screen, image, writer, noscreen, dowrite, bg, rotatehue ? HSVtoRGB(int(hue), sat, val) : fg, num_threads);
         set_cursor(cursor_pos.X, cursor_pos.Y);
         if (dowrite)
         {
@@ -759,4 +719,6 @@ int main(int argc, char* argv[])
       }
     }
   }
-}
+}  
+
+  

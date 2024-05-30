@@ -343,7 +343,7 @@ void drawslice(SDL_Renderer* renderer, int w, int starty, int endy, bool* screen
   //bgint = 0xffffffff;
   //fgint = 0xffffffff; //debug
 
-  bool* sp_screen = screen + starty * w;
+  int sp = starty * w;
   uint8_t* sp_pixels = nullptr;
   for (int y = starty; y <= endy; y++)
   {
@@ -351,7 +351,7 @@ void drawslice(SDL_Renderer* renderer, int w, int starty, int endy, bool* screen
     bool dot = false;
     for (int x = 0; x < w; x++)
     {
-      if (*(++sp_screen)) dot = not dot;
+      if (screen[++sp]) dot = not dot;
       if (dot)
       {
         if (not noscreen) *(uint32_t*)sp_pixels = fgint;
