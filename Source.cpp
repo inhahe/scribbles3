@@ -771,6 +771,8 @@ int main(int argc, char* argv[])
           SDL_DestroyWindow(window);
           SDL_DestroyRenderer(renderer);
           SDL_Quit();
+          show_console_cursor(true);
+          cout << endl;
           return 0;
         }
       }
