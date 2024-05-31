@@ -524,7 +524,8 @@ int parsecommandline(int argc, char* argv[])
       ("timecurves", value<int>(),
         "number of curves in time per space curve. only applies when --loop or --file is enabled. "
         "increase this to make the loops longer. defaults to 5")
-      ("w", value<int>(), "window width. defaults to 1000")
+      ("w", value<int>(), "window width. defaults to 1000. I recommend a square screen; otherwise the graphics are "
+        "kinda skewed")
       ("h", value<int>(), "window height. defaults to 1000. smaller width and height make the program run faster")
       ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or "
         "#000000 if --rotatehue is enabled")
