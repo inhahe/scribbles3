@@ -4,7 +4,6 @@
 #include <iostream>
 #include <gif.h>
 #include <cstring>
-#include <chrono>
 #ifdef _WIN32
 #include <SDL.h>
 #include <windows.h>
@@ -20,7 +19,6 @@ struct COORD { int X, Y; };
 using namespace std;
 using namespace boost::program_options;
 using namespace boost;
-using namespace std::chrono;
 
 struct rgb
 {
@@ -47,7 +45,6 @@ float sat = 100;
 float val = 100;
 bool noscreen = false;
 bool running = true;
-int framespan = 100;
 
 void set_cursor(int x = 0, int y = 0)
 {
@@ -60,26 +57,6 @@ void set_cursor(int x = 0, int y = 0)
   SetConsoleCursorPosition(handle, coordinates);
 #elif __linux__
   cout << "\033[" << y << ";" << x << "H" << flush;
-#endif
-}
-
-void set_yellow_text()
-{
-#ifdef _WIN32
-  HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-  SetConsoleTextAttribute(hConsole, 14);
-#elif __linux__
-  cout << "\x1B[93m";
-#endif
-}
-
-void set_white_text()
-{
-#ifdef _WIN32
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTextAttribute(hConsole, 7);
-#elif __linux__
-    cout << "\x1B[0m";
 #endif
 }
 
@@ -598,16 +575,6 @@ int parsecommandline(int argc, char* argv[])
   return r;
 }
 
-void display_warning(COORD percent_cursor_pos = COORD{ -1, -1 })
-{
-  show_console_cursor(true);
-  if (percent_cursor_pos.X != -1) set_cursor(percent_cursor_pos.X, percent_cursor_pos.Y);
-  set_yellow_text();
-  cout << endl << endl << "\a";
-  cout << "Warning: Writing to file has been aborted. File is not complete. It will not loop seamlessly." << endl;
-  set_white_text();
-}
-
 GifWriter writer = {};
 
 #ifdef _WIN32
@@ -618,7 +585,9 @@ BOOL WINAPI consoleHandler(DWORD signal) {
     if (dowrite)
     {
       GifEnd(&writer);
-      display_warning();
+      show_console_cursor(true);
+      cout << "\a";
+      cout << "Warning: Writing to file has been aborted. File is not complete. It will not loop properly." << endl;
       running = false;
     }
   }
@@ -654,10 +623,7 @@ int main(int argc, char* argv[])
   vector<point>* timepercanchors = new vector<point>[spacecurves];
   int bs = testbeziersize(timecurvepoints);
   image = new uint8_t[w * h * 4];
-  steady_clock::time_point t1, t2;
-  int framenum = 0;
-  int framespans = 1;
-  
+
   if (dowrite)
   {
     GifBegin(&writer, filename.c_str(), w, h, 8, true);
@@ -672,11 +638,11 @@ int main(int argc, char* argv[])
   }
   srand(seed);
 
-  cout << "Made by Richard A. Nichols III (Inhahe)" << endl << endl << endl << flush;
-  COORD fps_cursor_pos = get_cursor();
-  COORD percent_cursor_pos = get_cursor();
-  fps_cursor_pos.Y = percent_cursor_pos.Y - 1;
-  show_console_cursor(false);
+  cout << "Made by Richard A. Nichols III (Inhahe)" << endl;
+
+  if (dowrite) cout << endl;
+  COORD cursor_pos = get_cursor();
+  if (dowrite) show_console_cursor(false);
   if(not noscreen)
   {
     SDL_Init(SDL_INIT_EVERYTHING);
@@ -695,28 +661,17 @@ int main(int argc, char* argv[])
   {
     metapoints* mps = new metapoints[spacecurves];
     for (int i = 0; i < spacecurves; i++) mps[i] = metapoints(w, h, timecurvepoints, contiguous);
-    t1 = steady_clock::now();
+    //int framenum = 0; //debug
+    //int ltime = time(NULL);//debug
     for (;;)
     {
-      framenum++;
-      if (framenum == framespan)
-      {
-        t2 = steady_clock::now();
-        duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-        double seconds = time_span.count();
-        if (seconds >= 1)
-        {
-          t1 = t2;
-          set_cursor(fps_cursor_pos.X, fps_cursor_pos.Y);
-          cout << "fps: " << int(float(framespan * framespans) / seconds) << "       " << flush;
-          framespans = 1;
-        }
-        else
-        {
-          framespans++;
-        }
-        framenum = 0;
-      }
+      //framenum++;//debug
+      //if (framenum == 1024) //debug
+      //{//debug
+      //  cout << "fps: " << 1024 / (time(NULL) - ltime) << endl;//debug
+      //  ltime = time(NULL);//debug
+      //  framenum = 0; //debug
+      //}//debug
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
       if (rotatehue) fg = HSVtoRGB(hue, sat, val);
       drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
@@ -750,7 +705,6 @@ int main(int argc, char* argv[])
       auto timepercanchors2 = createpercloop(timeanchors, timecurvepoints);
       timepercanchors[i] = timepercanchors2;
     }
-    t1 = steady_clock::now();
     for (;;)
     {
       for (int i2 = 0; i2 < timecurves * bs; i2++)
@@ -760,19 +714,10 @@ int main(int argc, char* argv[])
           SDL_DestroyWindow(window);
           SDL_DestroyRenderer(renderer);
           SDL_Quit();
-          display_warning(percent_cursor_pos);
+          show_console_cursor(true);
+          cout << "\a";
+          cout << "Warning: Writing to file has been aborted. File is not complete. It will not loop properly." << endl;
           return  0;
-        }
-        framenum++;
-        if (framenum == framespan)
-        {
-          set_cursor(fps_cursor_pos.X, fps_cursor_pos.Y);
-          t2 = steady_clock::now();
-          duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-          t1 = t2;
-          float seconds = time_span.count();
-          if (seconds >= 1) cout << "fps: " << int(float(framespan) / seconds) << "       " << flush;
-          framenum = 0;
         }
         for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
         if (rotatehue)
@@ -784,12 +729,12 @@ int main(int argc, char* argv[])
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
         drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
           screen, image, writer, noscreen, dowrite, bg, fg, pixel_format, texture);
+        set_cursor(cursor_pos.X, cursor_pos.Y);
         if (dowrite)
         {
           if (time(NULL) > ltime)
           {
-            set_cursor(percent_cursor_pos.X, percent_cursor_pos.Y);
-            cout << int(float(i2) / float(timecurves * bs) * 100) << "% done" << flush;
+            cout << int(float(i2) / float(timecurves * bs) * 100) << "%" << flush;
             ltime = time(NULL);
           }
         }
@@ -809,7 +754,8 @@ int main(int argc, char* argv[])
             if (dowrite)
             {
               GifEnd(&writer);
-              display_warning(percent_cursor_pos);
+              cout << "\a";
+              cout << "Warning: Writing to file has been aborted. File is not complete. It will not loop properly." << endl;
             }
             return  0;
           }
