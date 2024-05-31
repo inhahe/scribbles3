@@ -1,24 +1,15 @@
-//todo: on linux the percentage erases after it's finished for some reason
+//change screen[++sp] to sp_screen
+
+#include <SDL.h>
 #include <vector>
 #include <cstdint>
 #include <iostream>
 #include <gif.h>
 #include <cstring>
-#ifdef _WIN32
-#include <SDL.h>
 #include <windows.h>
-#elif __linux__
-#include <SDL2/SDL.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <termios.h>
-struct COORD { int X, Y; };
-#endif
 #include <boost/program_options.hpp>
-#include <boost/regex.hpp>
 using namespace std;
 using namespace boost::program_options;
-using namespace boost;
 
 struct rgb
 {
@@ -48,21 +39,16 @@ bool running = true;
 
 void set_cursor(int x = 0, int y = 0)
 {
-#ifdef _WIN32
   HANDLE handle;
   COORD coordinates;
   handle = GetStdHandle(STD_OUTPUT_HANDLE);
   coordinates.X = x;
   coordinates.Y = y;
   SetConsoleCursorPosition(handle, coordinates);
-#elif __linux__
-  cout << "\033[" << y << ";" << x << "H" << flush;
-#endif
 }
 
 COORD get_cursor()
 {
-#ifdef _WIN32
   CONSOLE_SCREEN_BUFFER_INFO cbsi;
   if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cbsi))
   {
@@ -74,44 +60,28 @@ COORD get_cursor()
     COORD invalid = { 0, 0 };
     return invalid;
   }
-#elif __linux__
-  COORD result;
-  char buf[8];
-  char cmd[] = "\033[6n";
-  struct termios save, raw;
-  tcgetattr(0, &save);
-  cfmakeraw(&raw); tcsetattr(0, TCSANOW, &raw);
-  if (isatty(fileno(stdin)))
-  {
-    write(1, cmd, sizeof(cmd));
-    read(0, buf, sizeof(buf));
-
-    /* It doesn't work!!?
-    sscanf(buf,"%d",curline);
-    printf("\n\rCurrent Line: %d\n\r" , curline);
-    */
-
-    smatch sm1;
-    regex_search(string(buf), sm1, regex("\\[(\\d*);(\\d*)R"));
-    result.Y = stoi(sm1[1]);
-    result.X = stoi(sm1[2]);
-  }
-  tcsetattr(0, TCSANOW, &save);
-  return result;
-#endif
 }
 
-void show_console_cursor(const bool show) 
-{
-#if defined(_WIN32)
+void show_console_cursor(const bool show) {
+//#if defined(_WIN32)
   static const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
   CONSOLE_CURSOR_INFO cci;
   GetConsoleCursorInfo(handle, &cci);
   cci.bVisible = show; // show/hide cursor
   SetConsoleCursorInfo(handle, &cci);
-#elif defined(__linux__)
-  cout << (show ? "\033[?25h" : "\033[?25l") << flush; // show/hide cursor
-#endif // Windows/Linux
+//#elif defined(__linux__)
+//  cout << (show ? "\033[?25h" : "\033[?25l"); // show/hide cursor
+//#endif // Windows/Linux
+}
+
+void SetPixel(uint8_t* image, int xx, int yy, uint8_t red, uint8_t grn, uint8_t blu) 
+//todo: use *sp_image++ for this
+{
+  uint8_t* pixel = &image[(yy * w + xx) * 4];
+  pixel[0] = red;
+  pixel[1] = grn;
+  pixel[2] = blu;
+  pixel[3] = 255;  // no alpha for this demo
 }
 
 struct point
@@ -368,8 +338,9 @@ vector<point> createdisploop(vector<point> percpoints)
   return disppoints;
 }
 
+
 void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
-  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, rgb bg, rgb fg, SDL_PixelFormat* pixel_format, SDL_Texture* texture) 
+  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, Uint32 bgint, Uint32 fgint, SDL_Texture* texture)
 {
   //for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
   memset(screen, 0, w * h * sizeof(bool));
@@ -379,14 +350,9 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
   int sp = 0;
   int s = disppoints.size();
   uint8_t* pixels;
-  bool* sp_screen = nullptr;
+  bool* sp_screen = screen;
   uint8_t* sp_pixels = nullptr;
   int pitch;
-  Uint32 bgint_screen = SDL_MapRGBA(pixel_format, bg.r, bg.g, bg.b, 0xff);
-  Uint32 fgint_screen = SDL_MapRGBA(pixel_format, fg.r, fg.g, fg.b, 0xff);
-  Uint32 bgint_image = bg.r + (bg.g << 8) + (bg.b << 16) + 0xff000000;
-  Uint32 fgint_image = fg.r + (fg.g << 8) + (fg.b << 16) + 0xff000000;
-  uint8_t* sp_image = image;
   for (int i = 0; i < s * 2; i++)
   {
     point p = disppoints[i % s];
@@ -410,8 +376,6 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
     cout << SDL_GetError() << endl;
     exit(EXIT_FAILURE);
   }
-  sp_screen = screen;
-  sp_image = image;
   for (int y = 0; y < h; y++)
   {
     sp_pixels = pixels + y * pitch;
@@ -421,22 +385,15 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
       if (*(++sp_screen)) dot = not dot;
       if (dot)
       {
-        if (not noscreen) *(uint32_t*)sp_pixels = fgint_screen;
-        if (dowrite)
-        {
-          *(uint32_t*)sp_image = fgint_image;
-        }
+        if (not noscreen) *(uint32_t*)sp_pixels = fgint;
+        if (dowrite) SetPixel(image, x, y, fg.r, fg.g, fg.b);
       }
       else
       {
-        if (not noscreen) *(uint32_t*)sp_pixels = bgint_screen;
-        if (dowrite)
-        {
-          *(uint32_t*)sp_image = bgint_image;
-        }
+        if (not noscreen) *(uint32_t*)sp_pixels = bgint;
+        if (dowrite) SetPixel(image, x, y, bg.r, bg.g, bg.b);
       }
       sp_pixels += 4;
-      sp_image += 4;
     }
   }
 
@@ -452,12 +409,17 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
 rgb hex2rgb(string s)
 {
   rgb rgb2;
-  smatch sm;
-  regex_match(s, sm, regex("[#]?(\\w{2})(\\w{2})(\\w{2})"));
-
-  rgb2.r = stoi(sm[1], nullptr, 16);
-  rgb2.b = stoi(sm[2], nullptr, 16);
-  rgb2.g = stoi(sm[3], nullptr, 16);
+  int b = s[0] == '#' ? 1 : 0;
+  char subbuff[3];
+  memcpy(subbuff, &s[b], 2);
+  subbuff[2] = '\0';
+  sscanf_s(subbuff, "%x", &rgb2.r);
+  memcpy(subbuff, &s[b + 2], 2);
+  subbuff[2] = '\0';
+  sscanf_s(subbuff, "%x", &rgb2.g);
+  memcpy(subbuff, &s[b + 4], 2);
+  subbuff[2] = '\0';
+  sscanf_s(subbuff, "%x", &rgb2.b);
   return rgb2;
 }
 
@@ -577,7 +539,6 @@ int parsecommandline(int argc, char* argv[])
 
 GifWriter writer = {};
 
-#ifdef _WIN32
 BOOL WINAPI consoleHandler(DWORD signal) {
 
   if (signal == CTRL_C_EVENT)
@@ -593,14 +554,11 @@ BOOL WINAPI consoleHandler(DWORD signal) {
   }
   return not running;
 }
-#endif
 
 int main(int argc, char* argv[])
 {
   int ltime = 0;
-  #ifdef _WIN32
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
-  #endif
   float hue = 160;
 
   if (parsecommandline(argc, argv)) return 0;
@@ -622,7 +580,6 @@ int main(int argc, char* argv[])
   vector<point> dispanchors;
   vector<point>* timepercanchors = new vector<point>[spacecurves];
   int bs = testbeziersize(timecurvepoints);
-  image = new uint8_t[w * h * 4];
 
   if (dowrite)
   {
@@ -673,9 +630,11 @@ int main(int argc, char* argv[])
       //  framenum = 0; //debug
       //}//debug
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
+      Uint32 bgint = SDL_MapRGBA(pixel_format, bg.r, bg.g, bg.b, 0xff);
       if (rotatehue) fg = HSVtoRGB(hue, sat, val);
+      Uint32 fgint = SDL_MapRGBA(pixel_format, fg.r, fg.g, fg.b, 0xff);
       drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-        screen, image, writer, noscreen, dowrite, bg, fg, pixel_format, texture);
+        screen, image, writer, noscreen, dowrite, bgint, fgint, texture);
       if (rotatehue)
       {
         hue += huespeed;
@@ -707,6 +666,7 @@ int main(int argc, char* argv[])
     }
     for (;;)
     {
+      image = new uint8_t[w * h * 4]; //todo: only make one image and zero it out every time?
       for (int i2 = 0; i2 < timecurves * bs; i2++)
       {
         if (not running)
@@ -726,15 +686,17 @@ int main(int argc, char* argv[])
           if (hue > 360) hue = fmod(hue, 360);
           else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
+        Uint32 bgint = SDL_MapRGBA(pixel_format, bg.r, bg.g, bg.b, 0xff);
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
+        Uint32 fgint = SDL_MapRGBA(pixel_format, fg.r, fg.g, fg.b, 0xff);
         drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-          screen, image, writer, noscreen, dowrite, bg, fg, pixel_format, texture);
+          screen, image, writer, noscreen, dowrite, bgint, fgint, texture);
         set_cursor(cursor_pos.X, cursor_pos.Y);
         if (dowrite)
         {
           if (time(NULL) > ltime)
           {
-            cout << int(float(i2) / float(timecurves * bs) * 100) << "%" << flush;
+            cout << int(float(i2) / float(timecurves * bs) * 100) << "%";
             ltime = time(NULL);
           }
         }

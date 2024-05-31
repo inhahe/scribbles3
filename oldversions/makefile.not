@@ -1,0 +1,8 @@
+CC:=gcc
+CFLAGS:=-I/usr/local/include/SDL2
+LIBS:=-lSDL2
+LDFLAGS:=-L/usr/local/lib $(LIBS)
+objects:=3d.o Affichage.o
+poly: $(objects)
+	$(CC) $^ -o $@ $(LDFLAGS)
+	
