@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <termios.h>
+#include <signal.h>
 struct COORD { int X, Y; };
 #endif
 #include <boost/program_options.hpp>
@@ -612,7 +613,6 @@ GifWriter writer = {};
 
 #ifdef _WIN32
 BOOL WINAPI consoleHandler(DWORD signal) {
-
   if (signal == CTRL_C_EVENT)
   {
     if (dowrite)
@@ -621,8 +621,39 @@ BOOL WINAPI consoleHandler(DWORD signal) {
       display_warning();
       running = false;
     }
+    else
+    {
+      cout << endl;
+    }
   }
-  return not running;
+  return not running; //wait wtf?
+}
+#elif __linux__
+//void sigint(int a)
+//{
+//  if (dowrite)
+//  {
+//    GifEnd(&writer);
+//    display_warning();
+//    running = false;
+//  }
+//  else
+//  {
+//    cout << endl << endl << flush; //why doesn't this work?
+//  }
+//}
+void termination_handler(int signum)
+{
+  if (dowrite)
+  {
+    GifEnd(&writer);
+    display_warning();
+    running = false;
+  }
+  else
+  {
+    cout << endl << endl << flush; //why doesn't this work?
+  }
 }
 #endif
 
