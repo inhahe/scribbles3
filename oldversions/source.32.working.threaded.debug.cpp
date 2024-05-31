@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include <vector>
 #include <cstdint>
+#include <thread> 
 #include <iostream>
 #include <gif.h>
 #include <cstring>
@@ -337,9 +338,37 @@ vector<point> createdisploop(vector<point> percpoints)
   return disppoints;
 }
 
+void drawslice(SDL_Renderer* renderer, int w, int starty, int endy, bool* screen, uint8_t* image, bool noscreen, bool dowrite, Uint32 fgint, Uint32 bgint, uint8_t* pixels, int pitch)
+{
+  //bgint = 0xffffffff;
+  //fgint = 0xffffffff; //debug
+
+  bool* sp_screen = screen + starty * w;
+  uint8_t* sp_pixels = nullptr;
+  for (int y = starty; y <= endy; y++)
+  {
+    sp_pixels = pixels + y * pitch;
+    bool dot = false;
+    for (int x = 0; x < w; x++)
+    {
+      if (*(++sp_screen)) dot = not dot;
+      if (dot)
+      {
+        if (not noscreen) *(uint32_t*)sp_pixels = fgint;
+        if (dowrite) SetPixel(image, x, y, fg.r, fg.g, fg.b);
+      }
+      else
+      {
+        if (not noscreen) *(uint32_t*) sp_pixels = bgint;
+        if (dowrite) SetPixel(image, x, y, bg.r, bg.g, bg.b);
+      }
+      sp_pixels += 4;
+    }
+  }
+}
 
 void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
-  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, Uint32 bgint, Uint32 fgint, SDL_Texture* texture)
+  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, Uint32 bgint, Uint32 fgint, int num_threads, SDL_Texture* texture)
 {
   //for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
   memset(screen, 0, w * h * sizeof(bool));
@@ -349,8 +378,6 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
   int sp = 0;
   int s = disppoints.size();
   uint8_t* pixels;
-  bool* sp_screen = screen;
-  uint8_t* sp_pixels = nullptr;
   int pitch;
   for (int i = 0; i < s * 2; i++)
   {
@@ -369,33 +396,26 @@ void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
     lp = p;
   }
 
+  std::thread* threads = new std::thread[num_threads];
+  //std::thread threads[num_threads];
+  //std::vector<std::thread> threads(num_threads);
+
+  int ys_per_thread = h / num_threads;
   int lock_result = SDL_LockTexture(texture, NULL, (void**)&pixels, &pitch);
   if (lock_result != 0) 
   {
     cout << SDL_GetError() << endl;
     exit(EXIT_FAILURE);
   }
-  for (int y = 0; y < h; y++)
-  {
-    sp_pixels = pixels + y * pitch;
-    bool dot = false;
-    for (int x = 0; x < w; x++)
-    {
-      if (*(++sp_screen)) dot = not dot;
-      if (dot)
-      {
-        if (not noscreen) *(uint32_t*)sp_pixels = fgint;
-        if (dowrite) SetPixel(image, x, y, fg.r, fg.g, fg.b);
-      }
-      else
-      {
-        if (not noscreen) *(uint32_t*)sp_pixels = bgint;
-        if (dowrite) SetPixel(image, x, y, bg.r, bg.g, bg.b);
-      }
-      sp_pixels += 4;
-    }
-  }
 
+  for (int t = 0; t < num_threads; t++)
+  {
+    int starty = ys_per_thread * t;
+    int endy = starty + ys_per_thread - 1;
+    if (endy > h - 1) endy = h - 1;
+    threads[t] = std::thread(drawslice, renderer, w, starty, endy, screen, image, noscreen, dowrite, fgint, bgint, pixels, pitch);
+    threads[t].join();
+  }
   SDL_UnlockTexture(texture);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   if (not noscreen) SDL_RenderPresent(renderer);
@@ -557,6 +577,10 @@ BOOL WINAPI consoleHandler(DWORD signal) {
 
 int main(int argc, char* argv[])
 {
+  auto num_threads = std::thread::hardware_concurrency();
+  if (num_threads == 0) num_threads = 1; //maybe make this 4 or something. hardware_concurrency may return 0 if it can't detect number of cores.
+  num_threads = 1; //debug
+  //cout << "number of threads: " << num_threads << endl;
   int ltime = 0;
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
   float hue = 160;
@@ -618,23 +642,27 @@ int main(int argc, char* argv[])
   {
     metapoints* mps = new metapoints[spacecurves];
     for (int i = 0; i < spacecurves; i++) mps[i] = metapoints(w, h, timecurvepoints, contiguous);
-    //int framenum = 0; //debug
-    //int ltime = time(NULL);//debug
+    int framenum = 0; //debug
+    int ltime = time(NULL);
     for (;;)
     {
-      //framenum++;//debug
-      //if (framenum == 1024) //debug
-      //{//debug
-      //  cout << "fps: " << 1024 / (time(NULL) - ltime) << endl;//debug
-      //  ltime = time(NULL);//debug
-      //  framenum = 0; //debug
-      //}//debug
+      framenum++;//debug
+      if (framenum == 1024) //debug
+      {//debug
+        cout << "fps: " << 1024 / (time(NULL) - ltime) << endl;//debug
+        ltime = time(NULL);//debug
+        framenum = 0; //debug
+      }//debug
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
+      //Uint32 bgint = bg.r << 24 + bg.g << 16 + bg.b << 8 + 0xff;
+      //Uint32 bgint = 0xff000000 + bg.r << 16 + bg.g << 8 + bg.r;
       Uint32 bgint = SDL_MapRGBA(pixel_format, bg.r, bg.g, bg.b, 0xff);
       if (rotatehue) fg = HSVtoRGB(hue, sat, val);
+      //Uint32 fgint = fg.r << 24 + fg.g << 16 + fg.b << 8 + 0xff;
+      //Uint32 fgint = 0xff000000 + fg.r << 16 + fg.g << 8 + fg.r;
       Uint32 fgint = SDL_MapRGBA(pixel_format, fg.r, fg.g, fg.b, 0xff);
       drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-        screen, image, writer, noscreen, dowrite, bgint, fgint, texture);
+        screen, image, writer, noscreen, dowrite, bgint, fgint, num_threads, texture);
       if (rotatehue)
       {
         hue += huespeed;
@@ -686,11 +714,15 @@ int main(int argc, char* argv[])
           if (hue > 360) hue = fmod(hue, 360);
           else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
+        //Uint32 bgint = bg.r << 24 + bg.g << 16 + bg.b << 8 + 0xff;
+         //Uint32 bgint = 0xff000000 + bg.r << 16 + bg.g << 8 + bg.r;
         Uint32 bgint = SDL_MapRGBA(pixel_format, bg.r, bg.g, bg.b, 0xff);
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
+        //Uint32 fgint = fg.r << 24 + fg.g << 16 + fg.b << 8 + 0xff;
+        //Uint32 fgint = 0xff000000 + fg.r << 16 + fg.g << 8 + fg.r;
         Uint32 fgint = SDL_MapRGBA(pixel_format, fg.r, fg.g, fg.b, 0xff);
         drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-          screen, image, writer, noscreen, dowrite, bgint, fgint, texture);
+          screen, image, writer, noscreen, dowrite, bgint, fgint, num_threads, texture);
         set_cursor(cursor_pos.X, cursor_pos.Y);
         if (dowrite)
         {
