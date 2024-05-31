@@ -623,6 +623,7 @@ BOOL WINAPI consoleHandler(DWORD signal) {
     }
     else
     {
+      show_console_cursor(true);
       cout << endl;
     }
   }
@@ -639,6 +640,7 @@ BOOL WINAPI consoleHandler(DWORD signal) {
 //  }
 //  else
 //  {
+//    show_console_cursor(true);
 //    cout << endl << endl << flush; //why doesn't this work?
 //  }
 //}
@@ -652,6 +654,7 @@ void termination_handler(int signum)
   }
   else
   {
+    show_console_cursor(true);
     cout << endl << endl << flush; //why doesn't this work?
   }
 }
