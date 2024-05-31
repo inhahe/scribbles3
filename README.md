@@ -3,11 +3,11 @@ Makes cool animated designs with command-line parameters. Can save to animated g
 
 Here are some examples of what it can do:
 
-https://github.com/inhahe/scribbles3/assets/61786/cffeeaa4-bd37-4ad0-9112-f68147231c83
+![test](https://github.com/inhahe/scribbles3/assets/61786/134d331d-4d9e-4aca-ac27-4e1632bc1d03)
 
 ![1624674315085004800](https://github.com/inhahe/scribbles3/assets/61786/cb0a4fa8-816a-4c80-9ff6-56e0f8384e70)
 
-https://github.com/inhahe/scribbles3/assets/61786/46d32be5-dce7-43c8-be1a-e2405b74e06f
+https://github.com/inhahe/scribbles3/assets/61786/80c9f098-0e14-4bc7-9885-5779426eb0db
 
 ![1624686369346912256](https://github.com/inhahe/scribbles3/assets/61786/6d781b73-be81-4845-b4e8-6086bc4d58e0)
 
