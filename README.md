@@ -33,14 +33,16 @@ Options:
                          will eliminate all similarity in the pattern if
                          they're any different)
   --file arg             if an output file is specified, --loop will be
-                         enabled, and the animation will stop after one loop
+                         enabled, and the animation will stop after one loop.
+                         filename extension should be "gif"
   --noscreen             doesn't display anything. only for use with --file
   --spacecurves arg      number of curves in space. increase this to make more
                          complicated shapes. defaults to 30
   --timecurves arg       number of curves in time per space curve. only applies
                          when --loop or --file is enabled. increase this to
                          make the loops longer. defaults to 5
-  --w arg                window width. defaults to 1000
+  --w arg                window width. defaults to 1000. I recommend a square
+                         aspect ratio; otherwise the graphics are kinda skewed
   --h arg                window height. defaults to 1000. smaller width and
                          height make the program run faster
   --bgcolor arg          background color, six-digit hex number. defaults to
