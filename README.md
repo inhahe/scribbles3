@@ -17,6 +17,14 @@ https://github.com/inhahe/scribbles3/assets/61786/80c9f098-0e14-4bc7-9885-577942
 
 I used to draw designs like what this makes, on paper, a long time ago, and for many years I wanted to create it progammatically, but I just couldn't quite figure out how I could do it. But recently I started thinking about it again and coding, and I had a couple of realizations that made it possible.
 
+Dependencies:
+- boost_program_options
+- boost_regex
+- SDL2
+
+This program runs on both Linux and Windows. 
+For Windows, you'll have to set Additional Include Directories and Additional Library Directories in Visual Studio to point to your Boost and SDL2 directories.
+
 ```
 Options:
   --help                 This help screen
