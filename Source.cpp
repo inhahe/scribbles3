@@ -9,6 +9,7 @@
 #ifdef _WIN32
 #include <SDL.h>
 #include <windows.h>
+#define sleep(x) Sleep(1000 * (x))
 #elif __linux__
 #include <SDL2/SDL.h>
 #include <stdio.h>
@@ -783,6 +784,7 @@ int main(int argc, char* argv[])
         //why the hell doesn't hue -= (int(hue) / 360) * 360 + 360; work?
       }
       vector<point>().swap(dispanchors);
+      show_console_cursor(true);
       if (not noscreen)
       {
         SDL_PollEvent(&event);
@@ -791,7 +793,6 @@ int main(int argc, char* argv[])
           SDL_DestroyWindow(window);
           SDL_DestroyRenderer(renderer);
           SDL_Quit();
-          show_console_cursor(true);
           cout << endl;
           return 0;
         }
@@ -822,14 +823,23 @@ int main(int argc, char* argv[])
         framenum++;
         if (framenum == framespan)
         {
-          set_cursor(fps_cursor_pos.X, fps_cursor_pos.Y);
           t2 = steady_clock::now();
           duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-          t1 = t2;
-          float seconds = time_span.count();
-          if (seconds >= 1) cout << "fps: " << int(float(framespan) / seconds) << "       " << flush;
+          double seconds = time_span.count();
+          if (seconds >= 1)
+          {
+            t1 = t2;
+            set_cursor(fps_cursor_pos.X, fps_cursor_pos.Y);
+            cout << "fps: " << int(float(framespan * framespans) / seconds) << "       " << flush;
+            framespans = 1;
+          }
+          else
+          {
+            framespans++;
+          }
           framenum = 0;
         }
+
         for (int i = 0; i < spacecurves; i++) dispanchors.push_back(timepercanchors[i][i2]);
         if (rotatehue)
         {
@@ -871,7 +881,7 @@ int main(int argc, char* argv[])
           }
         }
       }
-      show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. also neither does showing fps or percentage. or when --loop is enabled. VERY WEIRD.
+      show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. also neither does showing fps or percentage. VERY WEIRD.
       if (dowrite) {
         GifEnd(&writer);
         if (not noscreen)
