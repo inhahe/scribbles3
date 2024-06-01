@@ -679,7 +679,6 @@ void termination_handler(int signum)
 
 int main(int argc, char* argv[])
 {
-  int ltime = 0;
 #ifdef _WIN32
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
 #endif
@@ -889,8 +888,8 @@ int main(int argc, char* argv[])
       }
       if (dowrite) {
         set_cursor(percent_cursor_pos.X, percent_cursor_pos.Y);
-        cout << "100% done" << flush; //doesn't work for some reason when --file and --noscreen are enabled. 
-        show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. 
+        cout << "100% done" << endl << flush; //doesn't work for some reason when --file and --noscreen are enabled. 
+        show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. i don't think this code is being run at all in that case. it works on Linux.
         GifEnd(&writer);
         if (not noscreen)
         {
