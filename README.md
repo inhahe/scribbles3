@@ -36,6 +36,8 @@ Options:
                          enabled, and the animation will stop after one loop.
                          filename extension should be "gif"
   --noscreen             doesn't display anything. only for use with --file
+  --vsync                don't update the screen faster than the screen refresh
+                         rate. this isn't supported on all platforms
   --spacecurves arg      number of curves in space. increase this to make more
                          complicated shapes. defaults to 30
   --timecurves arg       number of curves in time per space curve. only applies
