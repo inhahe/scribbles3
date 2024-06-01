@@ -1,4 +1,5 @@
 //todo: on linux the percentage erases after it's finished for some reason
+//todo: add more error checks
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -528,7 +529,7 @@ int parsecommandline(int argc, char* argv[])
         "if an output file is specified, --loop will be enabled, and the animation will stop after one loop. "
         "filename extension should be \"gif\"")
       ("noscreen", "doesn't display anything. only for use with --file")
-      ("vsync", "don't update the screen faster than the screen refresh rate. this isn't supported on all platforms. ")
+      ("vsync", "don't update the screen faster than the screen refresh rate. this isn't supported on all platforms")
       ("spacecurves", value<int>(),
         "number of curves in space. "
         "increase this to make more complicated shapes. defaults to 30")
@@ -729,9 +730,16 @@ int main(int argc, char* argv[])
     SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "1", SDL_HINT_OVERRIDE); //why doesn't this work?
     SDL_Init(SDL_INIT_EVERYTHING);
     window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI);
-    surface = SDL_GetWindowSurface(window);
-    renderer = SDL_CreateRenderer(window, -1, 0);
-    SDL_RenderClear(renderer);
+    if (enable_vsync)
+    {
+      surface = SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0);
+      renderer = SDL_CreateRenderer(window, -1, 0);
+      SDL_RenderClear(renderer);
+    }
+    else
+    {
+      surface = SDL_GetWindowSurface(window);
+    }
     pixel_format_surface = surface->format;
   }
 
