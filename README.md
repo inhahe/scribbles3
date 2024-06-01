@@ -26,8 +26,7 @@ This program runs on both Linux and Windows.
 For Windows, you'll have to set Additional Include Directories and Additional Library Directories in Visual Studio to point to your Boost and SDL2 directories.
 
 ```
-Options:
-  --help                 This help screen
+ --help                 This help screen
   --seed arg             randomization seed. use this to get the same exact
                          pattern you got before (but some of the other options
                          will eliminate all similarity in the pattern if
@@ -63,7 +62,9 @@ Options:
                          defaults to 100
   --value arg            brightness of colors when using --rotatehue. 1 to 100.
                          defaults to 100
-  --loop                 loops back on itself in time seamlessly
+  --loop                 loops back on itself in time seamlessly. I recommend
+                         using --vsync with --loop; otherwise it'll go way too
+                         fast
   --incontiguous         make it so that spacecurves don't move contiguously
                          through time, but skip pixels. this will have the
                          effect of making the animation change faster.
