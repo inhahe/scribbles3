@@ -393,8 +393,8 @@ vector<point> createdisploop(vector<point> percpoints)
   return disppoints;
 }
 
-void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface, int w, int h, vector<point> disppoints,
-  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, rgb bg, rgb fg, SDL_PixelFormat* pixel_format_surface, bool enable_vsync)
+void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface, SDL_Texture* texture, int w, int h, vector<point> disppoints,
+  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, rgb bg, rgb fg, SDL_PixelFormat* pixel_format_texture, SDL_PixelFormat* pixel_format_surface, bool enable_vsync)
 {
   //for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
   memset(screen, 0, w * h * sizeof(bool));
@@ -407,8 +407,8 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   bool* sp_screen = nullptr;
   uint8_t* sp_pixels = nullptr;
   int pitch;
-  Uint32 bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
-  Uint32 fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
+  Uint32 bgint_screen = SDL_MapRGBA(enable_vsync?pixel_format_texture:pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
+  Uint32 fgint_screen = SDL_MapRGBA(enable_vsync?pixel_format_texture:pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
   Uint32 bgint_image = bg.r + (bg.g << 8) + (bg.b << 16) + 0xff000000;
   Uint32 fgint_image = fg.r + (fg.g << 8) + (fg.b << 16) + 0xff000000;
   uint8_t* sp_image = image;
@@ -431,8 +431,20 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
 
   if (not noscreen)
   {
-    pixels = (uint8_t*)(surface->pixels);
-    pitch = surface->pitch;
+    if (enable_vsync)
+    {
+      int lock_result = SDL_LockTexture(texture, NULL, (void**)&pixels, &pitch);
+      if (lock_result != 0)
+      {
+        cout << SDL_GetError() << endl;
+        exit(EXIT_FAILURE);
+      }
+    }
+    else
+    {
+      pixels = (uint8_t*)(surface->pixels);
+      pitch = surface->pitch;
+    }
   }
   sp_screen = screen;
   sp_image = image;
@@ -466,14 +478,15 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
 
   if (not noscreen)
   {
-    if (SDL_MUSTLOCK(surface)) SDL_UnlockSurface(surface);
     if (enable_vsync)
     {
-      SDL_RenderCopy(renderer, SDL_CreateTextureFromSurface(renderer, surface), NULL, NULL);
+      SDL_UnlockTexture(texture);
+      SDL_RenderCopy(renderer, texture, NULL, NULL);
       SDL_RenderPresent(renderer);
     }
     else
     {
+      if (SDL_MUSTLOCK(surface)) SDL_UnlockSurface(surface);
       SDL_UpdateWindowSurface(window);
     }
   }
@@ -692,9 +705,11 @@ int main(int argc, char* argv[])
   bool* screen = new bool[w * h];
   uint8_t* image = nullptr;
   //Uint8* pixels = nullptr;
+  SDL_Texture* texture = nullptr;
   SDL_Renderer* renderer = nullptr;
   SDL_Window* window = nullptr;
   SDL_Surface* surface = nullptr;
+  SDL_PixelFormat* pixel_format_texture = nullptr;
   SDL_PixelFormat* pixel_format_surface = nullptr;
   SDL_Event event;
   vector<point> dispanchors;
@@ -732,7 +747,13 @@ int main(int argc, char* argv[])
     surface = SDL_GetWindowSurface(window);
     renderer = SDL_CreateRenderer(window, -1, 0);
     SDL_RenderClear(renderer);
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, w, h);
+    pixel_format_texture = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888);
     pixel_format_surface = surface->format;
+    if (texture == NULL) {
+      cout << SDL_GetError() << endl;
+      exit(EXIT_FAILURE);
+    }
   }
 
   if (noloop)
@@ -763,8 +784,8 @@ int main(int argc, char* argv[])
       }
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
       if (rotatehue) fg = HSVtoRGB(hue, sat, val);
-      drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-        screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);
+      drawscreen(window, renderer, surface, texture, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
+        screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_texture, pixel_format_surface, enable_vsync);
       if (rotatehue)
       {
         hue += huespeed;
@@ -828,8 +849,8 @@ int main(int argc, char* argv[])
           else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
-        drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-          screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);
+        drawscreen(window, renderer, surface, texture, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
+          screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_texture, pixel_format_surface, enable_vsync);
         if (dowrite)
         {
           if (time(NULL) > ltime)

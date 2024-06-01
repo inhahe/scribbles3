@@ -49,7 +49,6 @@ float val = 100;
 bool noscreen = false;
 bool running = true;
 int framespan = 100;
-bool enable_vsync = false;
 
 void set_cursor(int x = 0, int y = 0)
 {
@@ -393,8 +392,8 @@ vector<point> createdisploop(vector<point> percpoints)
   return disppoints;
 }
 
-void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface, int w, int h, vector<point> disppoints,
-  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, rgb bg, rgb fg, SDL_PixelFormat* pixel_format_surface, bool enable_vsync)
+void drawscreen(int w, int h, vector<point> disppoints,
+  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, rgb bg, rgb fg, SDL_PixelFormat* pixel_format, SDL_Surface* surface, SDL_Window* window)
 {
   //for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
   memset(screen, 0, w * h * sizeof(bool));
@@ -407,8 +406,8 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   bool* sp_screen = nullptr;
   uint8_t* sp_pixels = nullptr;
   int pitch;
-  Uint32 bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
-  Uint32 fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
+  Uint32 bgint_screen = SDL_MapRGBA(pixel_format, bg.r, bg.g, bg.b, 0xff);
+  Uint32 fgint_screen = SDL_MapRGBA(pixel_format, fg.r, fg.g, fg.b, 0xff);
   Uint32 bgint_image = bg.r + (bg.g << 8) + (bg.b << 16) + 0xff000000;
   Uint32 fgint_image = fg.r + (fg.g << 8) + (fg.b << 16) + 0xff000000;
   uint8_t* sp_image = image;
@@ -429,16 +428,17 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
     lp = p;
   }
 
-  if (not noscreen)
-  {
-    pixels = (uint8_t*)(surface->pixels);
-    pitch = surface->pitch;
-  }
   sp_screen = screen;
   sp_image = image;
+  int bytesperpixel = 0;
+  if (not noscreen)
+  {
+    bytesperpixel = surface->format->BytesPerPixel;
+    if (SDL_MUSTLOCK(surface)) SDL_LockSurface(surface);
+  }
   for (int y = 0; y < h; y++)
   {
-    if (not noscreen) sp_pixels = pixels + y * pitch;
+    if (not noscreen) sp_pixels = (uint8_t*) (surface->pixels) + y * surface->pitch;
     bool dot = false;
     for (int x = 0; x < w; x++)
     {
@@ -459,7 +459,7 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
           *(uint32_t*)sp_image = bgint_image;
         }
       }
-      sp_pixels += 4;
+      if (not noscreen) sp_pixels += bytesperpixel;
       sp_image += 4;
     }
   }
@@ -467,15 +467,7 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   if (not noscreen)
   {
     if (SDL_MUSTLOCK(surface)) SDL_UnlockSurface(surface);
-    if (enable_vsync)
-    {
-      SDL_RenderCopy(renderer, SDL_CreateTextureFromSurface(renderer, surface), NULL, NULL);
-      SDL_RenderPresent(renderer);
-    }
-    else
-    {
-      SDL_UpdateWindowSurface(window);
-    }
+    SDL_UpdateWindowSurface(window);
   }
   if (dowrite)
   {
@@ -528,7 +520,6 @@ int parsecommandline(int argc, char* argv[])
         "if an output file is specified, --loop will be enabled, and the animation will stop after one loop. "
         "filename extension should be \"gif\"")
       ("noscreen", "doesn't display anything. only for use with --file")
-      ("vsync", "don't update the screen faster than the screen refresh rate. this isn't supported on all platforms. ")
       ("spacecurves", value<int>(),
         "number of curves in space. "
         "increase this to make more complicated shapes. defaults to 30")
@@ -579,7 +570,6 @@ int parsecommandline(int argc, char* argv[])
       dowrite = true;
     }
     if (vm.count("noscreen")) noscreen = true;
-    if (vm.count("vsync")) enable_vsync = true;
     if (vm.count("spacecurves")) spacecurves = vm["spacecurves"].as<int>();
     if (vm.count("timecurves")) timecurves = vm["timecurves"].as<int>();
     if (vm.count("w")) w = vm["w"].as<int>();
@@ -692,10 +682,10 @@ int main(int argc, char* argv[])
   bool* screen = new bool[w * h];
   uint8_t* image = nullptr;
   //Uint8* pixels = nullptr;
-  SDL_Renderer* renderer = nullptr;
   SDL_Window* window = nullptr;
+  //SDL_Surface* flip_surface(SDL_Surface * surface, int flags)
   SDL_Surface* surface = nullptr;
-  SDL_PixelFormat* pixel_format_surface = nullptr;
+  SDL_PixelFormat* pixel_format = nullptr;
   SDL_Event event;
   vector<point> dispanchors;
   vector<point>* timepercanchors = new vector<point>[spacecurves];
@@ -726,13 +716,10 @@ int main(int argc, char* argv[])
   show_console_cursor(false);
   if (not noscreen)
   {
-    SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "1", SDL_HINT_OVERRIDE); //why doesn't this work?
     SDL_Init(SDL_INIT_EVERYTHING);
     window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI);
     surface = SDL_GetWindowSurface(window);
-    renderer = SDL_CreateRenderer(window, -1, 0);
-    SDL_RenderClear(renderer);
-    pixel_format_surface = surface->format;
+    pixel_format = surface->format;
   }
 
   if (noloop)
@@ -763,8 +750,8 @@ int main(int argc, char* argv[])
       }
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
       if (rotatehue) fg = HSVtoRGB(hue, sat, val);
-      drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-        screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);
+      drawscreen(w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
+        screen, image, writer, noscreen, dowrite, bg, fg, pixel_format, surface, window);
       if (rotatehue)
       {
         hue += huespeed;
@@ -779,7 +766,6 @@ int main(int argc, char* argv[])
         if (event.type == SDL_QUIT)
         {
           SDL_DestroyWindow(window);
-          SDL_DestroyRenderer(renderer);
           SDL_Quit();
           show_console_cursor(true);
           cout << endl;
@@ -804,7 +790,6 @@ int main(int argc, char* argv[])
         if (not running)
         {
           SDL_DestroyWindow(window);
-          SDL_DestroyRenderer(renderer);
           SDL_Quit();
           display_warning(percent_cursor_pos);
           return  0;
@@ -828,8 +813,8 @@ int main(int argc, char* argv[])
           else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
-        drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-          screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);
+        drawscreen(w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
+          screen, image, writer, noscreen, dowrite, bg, fg, pixel_format, surface, window);
         if (dowrite)
         {
           if (time(NULL) > ltime)
@@ -847,7 +832,6 @@ int main(int argc, char* argv[])
           if (event.type == SDL_QUIT)
           {
             SDL_DestroyWindow(window);
-            SDL_DestroyRenderer(renderer);
             SDL_Quit();
             //delete [] screen;
             //delete [] timepercanchors;
@@ -867,7 +851,6 @@ int main(int argc, char* argv[])
         if (not noscreen)
         {
           SDL_DestroyWindow(window);
-          SDL_DestroyRenderer(renderer);
           SDL_Quit();
         }
         return 0;

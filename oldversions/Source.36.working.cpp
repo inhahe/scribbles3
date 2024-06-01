@@ -49,7 +49,6 @@ float val = 100;
 bool noscreen = false;
 bool running = true;
 int framespan = 100;
-bool enable_vsync = false;
 
 void set_cursor(int x = 0, int y = 0)
 {
@@ -78,10 +77,10 @@ void set_yellow_text()
 void set_white_text()
 {
 #ifdef _WIN32
-  HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-  SetConsoleTextAttribute(hConsole, 7);
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, 7);
 #elif __linux__
-  cout << "\x1B[0m";
+    cout << "\x1B[0m";
 #endif
 }
 
@@ -126,7 +125,7 @@ COORD get_cursor()
 #endif
 }
 
-void show_console_cursor(const bool show)
+void show_console_cursor(const bool show) 
 {
 #if defined(_WIN32)
   static const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -393,8 +392,8 @@ vector<point> createdisploop(vector<point> percpoints)
   return disppoints;
 }
 
-void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface, int w, int h, vector<point> disppoints,
-  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, rgb bg, rgb fg, SDL_PixelFormat* pixel_format_surface, bool enable_vsync)
+void drawscreen(SDL_Renderer* renderer, int w, int h, vector<point> disppoints,
+  bool* screen, uint8_t* image, GifWriter& writer, bool noscreen, bool dowrite, rgb bg, rgb fg, SDL_PixelFormat* pixel_format, SDL_Texture* texture) 
 {
   //for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) screen[++sp] = false;
   memset(screen, 0, w * h * sizeof(bool));
@@ -403,12 +402,12 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   point lp = { -1, -1 };
   int sp = 0;
   int s = disppoints.size();
-  uint8_t* pixels = nullptr;
+  uint8_t* pixels;
   bool* sp_screen = nullptr;
   uint8_t* sp_pixels = nullptr;
   int pitch;
-  Uint32 bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
-  Uint32 fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
+  Uint32 bgint_screen = SDL_MapRGBA(pixel_format, bg.r, bg.g, bg.b, 0xff);
+  Uint32 fgint_screen = SDL_MapRGBA(pixel_format, fg.r, fg.g, fg.b, 0xff);
   Uint32 bgint_image = bg.r + (bg.g << 8) + (bg.b << 16) + 0xff000000;
   Uint32 fgint_image = fg.r + (fg.g << 8) + (fg.b << 16) + 0xff000000;
   uint8_t* sp_image = image;
@@ -429,16 +428,17 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
     lp = p;
   }
 
-  if (not noscreen)
+  int lock_result = SDL_LockTexture(texture, NULL, (void**)&pixels, &pitch);
+  if (lock_result != 0) 
   {
-    pixels = (uint8_t*)(surface->pixels);
-    pitch = surface->pitch;
+    cout << SDL_GetError() << endl;
+    exit(EXIT_FAILURE);
   }
   sp_screen = screen;
   sp_image = image;
   for (int y = 0; y < h; y++)
   {
-    if (not noscreen) sp_pixels = pixels + y * pitch;
+    sp_pixels = pixels + y * pitch;
     bool dot = false;
     for (int x = 0; x < w; x++)
     {
@@ -464,19 +464,9 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
     }
   }
 
-  if (not noscreen)
-  {
-    if (SDL_MUSTLOCK(surface)) SDL_UnlockSurface(surface);
-    if (enable_vsync)
-    {
-      SDL_RenderCopy(renderer, SDL_CreateTextureFromSurface(renderer, surface), NULL, NULL);
-      SDL_RenderPresent(renderer);
-    }
-    else
-    {
-      SDL_UpdateWindowSurface(window);
-    }
-  }
+  SDL_UnlockTexture(texture);
+  SDL_RenderCopy(renderer, texture, NULL, NULL);
+  if (not noscreen) SDL_RenderPresent(renderer);
   if (dowrite)
   {
     GifWriteFrame(&writer, image, w, h, 2, 8, true);
@@ -528,7 +518,6 @@ int parsecommandline(int argc, char* argv[])
         "if an output file is specified, --loop will be enabled, and the animation will stop after one loop. "
         "filename extension should be \"gif\"")
       ("noscreen", "doesn't display anything. only for use with --file")
-      ("vsync", "don't update the screen faster than the screen refresh rate. this isn't supported on all platforms. ")
       ("spacecurves", value<int>(),
         "number of curves in space. "
         "increase this to make more complicated shapes. defaults to 30")
@@ -579,7 +568,6 @@ int parsecommandline(int argc, char* argv[])
       dowrite = true;
     }
     if (vm.count("noscreen")) noscreen = true;
-    if (vm.count("vsync")) enable_vsync = true;
     if (vm.count("spacecurves")) spacecurves = vm["spacecurves"].as<int>();
     if (vm.count("timecurves")) timecurves = vm["timecurves"].as<int>();
     if (vm.count("w")) w = vm["w"].as<int>();
@@ -676,9 +664,9 @@ void termination_handler(int signum)
 int main(int argc, char* argv[])
 {
   int ltime = 0;
-#ifdef _WIN32
+  #ifdef _WIN32
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
-#endif
+  #endif
   float hue = 160;
 
   if (parsecommandline(argc, argv)) return 0;
@@ -692,10 +680,10 @@ int main(int argc, char* argv[])
   bool* screen = new bool[w * h];
   uint8_t* image = nullptr;
   //Uint8* pixels = nullptr;
+  SDL_Texture* texture = nullptr;
   SDL_Renderer* renderer = nullptr;
   SDL_Window* window = nullptr;
-  SDL_Surface* surface = nullptr;
-  SDL_PixelFormat* pixel_format_surface = nullptr;
+  SDL_PixelFormat* pixel_format = nullptr;
   SDL_Event event;
   vector<point> dispanchors;
   vector<point>* timepercanchors = new vector<point>[spacecurves];
@@ -704,7 +692,7 @@ int main(int argc, char* argv[])
   steady_clock::time_point t1, t2;
   int framenum = 0;
   int framespans = 1;
-
+  
   if (dowrite)
   {
     GifBegin(&writer, filename.c_str(), w, h, 8, true);
@@ -724,15 +712,18 @@ int main(int argc, char* argv[])
   COORD percent_cursor_pos = get_cursor();
   fps_cursor_pos.Y = percent_cursor_pos.Y - 1;
   show_console_cursor(false);
-  if (not noscreen)
+  if(not noscreen)
   {
-    SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "1", SDL_HINT_OVERRIDE); //why doesn't this work?
     SDL_Init(SDL_INIT_EVERYTHING);
     window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI);
-    surface = SDL_GetWindowSurface(window);
     renderer = SDL_CreateRenderer(window, -1, 0);
     SDL_RenderClear(renderer);
-    pixel_format_surface = surface->format;
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, w, h);
+    pixel_format = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888);
+    if (texture == NULL) {
+      cout << SDL_GetError() << endl;
+      exit(EXIT_FAILURE);
+    }
   }
 
   if (noloop)
@@ -763,8 +754,8 @@ int main(int argc, char* argv[])
       }
       for (int i = 0; i < spacecurves; i++) dispanchors.push_back(mps[i].getpoint());
       if (rotatehue) fg = HSVtoRGB(hue, sat, val);
-      drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-        screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);
+      drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
+        screen, image, writer, noscreen, dowrite, bg, fg, pixel_format, texture);
       if (rotatehue)
       {
         hue += huespeed;
@@ -828,8 +819,8 @@ int main(int argc, char* argv[])
           else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
-        drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
-          screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);
+        drawscreen(renderer, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
+          screen, image, writer, noscreen, dowrite, bg, fg, pixel_format, texture);
         if (dowrite)
         {
           if (time(NULL) > ltime)
