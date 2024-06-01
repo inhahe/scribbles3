@@ -881,8 +881,8 @@ int main(int argc, char* argv[])
           }
         }
       }
-      show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. also neither does showing fps or percentage. VERY WEIRD.
       if (dowrite) {
+        show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. also neither does showing fps or percentage. VERY WEIRD.
         GifEnd(&writer);
         if (not noscreen)
         {
