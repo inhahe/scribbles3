@@ -750,6 +750,8 @@ int main(int argc, char* argv[])
   {
     metapoints* mps = new metapoints[spacecurves];
     for (int i = 0; i < spacecurves; i++) mps[i] = metapoints(w, h, timecurvepoints, contiguous);
+    set_cursor(fps_cursor_pos.X, fps_cursor_pos.Y);
+    cout << "fps: " << flush;
     t1 = steady_clock::now();
     for (;;)
     {
@@ -784,12 +786,12 @@ int main(int argc, char* argv[])
         //why the hell doesn't hue -= (int(hue) / 360) * 360 + 360; work?
       }
       vector<point>().swap(dispanchors);
-      show_console_cursor(true);
       if (not noscreen)
       {
         SDL_PollEvent(&event);
         if (event.type == SDL_QUIT)
         {
+          show_console_cursor(true);
           SDL_DestroyWindow(window);
           SDL_DestroyRenderer(renderer);
           SDL_Quit();
@@ -806,6 +808,13 @@ int main(int argc, char* argv[])
       auto timeanchors = randanchors(w, h, timecurves);
       auto timepercanchors2 = createpercloop(timeanchors, timecurvepoints);
       timepercanchors[i] = timepercanchors2;
+    }
+    set_cursor(fps_cursor_pos.X, fps_cursor_pos.Y);
+    cout << "fps: " << flush;
+    if (dowrite)
+    {
+      set_cursor(percent_cursor_pos.X, percent_cursor_pos.Y);
+      cout << "0% done" << flush;
     }
     t1 = steady_clock::now();
     for (;;)
@@ -831,6 +840,12 @@ int main(int argc, char* argv[])
             t1 = t2;
             set_cursor(fps_cursor_pos.X, fps_cursor_pos.Y);
             cout << "fps: " << int(float(framespan * framespans) / seconds) << "       " << flush;
+            if (dowrite)
+            {
+              set_cursor(percent_cursor_pos.X, percent_cursor_pos.Y);
+              cout << int(float(i2) / float(timecurves * bs) * 100) << "% done" << flush;
+            }
+
             framespans = 1;
           }
           else
@@ -850,15 +865,6 @@ int main(int argc, char* argv[])
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
         drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
           screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);
-        if (dowrite)
-        {
-          if (time(NULL) > ltime)
-          {
-            set_cursor(percent_cursor_pos.X, percent_cursor_pos.Y);
-            cout << int(float(i2) / float(timecurves * bs) * 100) << "% done" << flush;
-            ltime = time(NULL);
-          }
-        }
         vector<point>().swap(dispanchors);
 
         if (not noscreen)
@@ -882,7 +888,9 @@ int main(int argc, char* argv[])
         }
       }
       if (dowrite) {
-        show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. also neither does showing fps or percentage. VERY WEIRD.
+        set_cursor(percent_cursor_pos.X, percent_cursor_pos.Y);
+        cout << "100% done" << flush; //doesn't work for some reason when --file and --noscreen are enabled. 
+        show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. 
         GifEnd(&writer);
         if (not noscreen)
         {
