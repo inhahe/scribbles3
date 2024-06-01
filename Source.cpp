@@ -434,6 +434,7 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   {
     pixels = (uint8_t*)(surface->pixels);
     pitch = surface->pitch;
+    if (SDL_MUSTLOCK(surface)) SDL_LockSurface(surface);
   }
   sp_screen = screen;
   sp_image = image;
