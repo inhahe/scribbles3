@@ -49,7 +49,7 @@ float sat = 100;
 float val = 100;
 bool noscreen = false;
 bool running = true;
-int framespan = 100;
+int framespan = 50;
 bool enable_vsync = false;
 
 void set_cursor(int x = 0, int y = 0)
