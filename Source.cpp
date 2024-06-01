@@ -552,7 +552,8 @@ int parsecommandline(int argc, char* argv[])
         "defaults to 100")
       ("value", value<float>(), "brightness of colors when using --rotatehue. 1 to 100. "
         "defaults to 100")
-      ("loop", "loops back on itself in time seamlessly")
+      ("loop", "loops back on itself in time seamlessly. I recommend using --vsync with --loop; otherwise it'll go "
+        "way too fast")
       ("incontiguous", "make it so that spacecurves don't move contiguously through time, but skip pixels. "
         "this will have the effect of making the animation change faster. --incontiguous is automatically "
         "enabled when --loop or --file is enabled")
@@ -870,9 +871,9 @@ int main(int argc, char* argv[])
           }
         }
       }
+      show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. also neither does showing fps or percentage. or when --loop is enabled. VERY WEIRD.
       if (dowrite) {
         GifEnd(&writer);
-        show_console_cursor(true);
         if (not noscreen)
         {
           SDL_DestroyWindow(window);
