@@ -1,4 +1,7 @@
 //todo: add more error checks
+//todo: the screen randomly slows down or hangs when using --vsync while the fps still gets updated and it takes a long time to quit the console part of the program
+//returned error `Parameter 'texture' is invalid` once
+//slows down the whole computer
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -146,10 +149,16 @@ struct point
   int y;
 };
 
-struct curve
+struct curve_quadratic
 {
   point p1, p2, p3;
 };
+
+struct curve_cubic
+{
+  point p1, p2, p3, p4;
+};
+
 
 float getPt(float n1, float n2, float perc)
 {
@@ -181,6 +190,35 @@ vector<point> beziercurve_quadratic(point p1, point p2, point p3, int pointsperc
   }
   return points;
 }
+
+vector<point> beziercurve_cubic(point p1, point p2, point p3, point p4, int pointspercurve)
+{
+  point p;
+  vector<point> points;
+  for (float i = 0; i < 1; i += 1.0 / static_cast <float>(pointspercurve))
+  {
+    // The Green Lines
+    float xa = getPt(p1.x, p2.x, i);
+    float ya = getPt(p1.y, p2.y, i);
+    float xb = getPt(p2.x, p3.x, i);
+    float yb = getPt(p2.y, p3.y, i);
+    float xc = getPt(p3.x, p4.x, i);
+    float yc = getPt(p3.y, p4.y, i);
+
+    // The Blue Line
+    float xm = getPt(xa, xb, i);
+    float ym = getPt(ya, yb, i);
+    float xn = getPt(xb, xc, i);
+    float yn = getPt(yb, yc, i);
+
+    // The Black Dot
+    p.x = int(getPt(xm, xn, i));
+    p.y = int(getPt(ym, yn, i));
+    points.push_back(p);
+  }
+  return points;
+}
+
 
 vector<point> plotline(point p1, point p2)
 {
@@ -236,10 +274,10 @@ vector<point> plotline(point p1, point p2)
   return points;
 }
 
-class metapoints
+class metapoints_cubic
 {
-  curve c1;
-  curve c2;
+  curve_cubic c1;
+  curve_cubic c2;
   vector<point> curvepoints2;
   vector<point> curvepoints;
   int pointindex = 0;
@@ -248,18 +286,57 @@ class metapoints
   int pointspercurve;
   bool contiguous;
 public:
-  metapoints()
+  metapoints_cubic()
   {
   }
-  metapoints(const int w, const int h, int pointspercurve, bool contiguous)
+  metapoints_cubic(const int w, const int h, int pointspercurve, bool contiguous)
+  {
+    float perc;
+    this->contiguous = contiguous;
+    float fRAND_MAX = static_cast<float>(RAND_MAX);
+    //method 1
+    this->c1.p1.x = (rand()) / (fRAND_MAX / w);
+    this->c1.p1.y = (rand()) / (fRAND_MAX / h);
+    this->c1.p2.x = (rand()) / (fRAND_MAX / w);
+    this->c1.p2.y = (rand()) / (fRAND_MAX / h);
+    this->c1.p3.x = (rand()) / (fRAND_MAX / w);
+    this->c1.p3.y = (rand()) / (fRAND_MAX / h);
+    this->c2.p1 = this->c1.p1;
+    perc = rand() / fRAND_MAX;
+    this->c2.p2.x = getPt(this->c1.p1.x, this->c2.p2.x, perc);
+    this->c2.p2.y = getPt(this->c1.p1.y, this->c2.p2.y, perc);
+    this->c2.p3 = this->c1.p2;
+    perc = rand() / fRAND_MAX;
+    this->c2.p4.x = getPt(this->c1.p2.x, this->c2.p3.x, perc);
+    this->c2.p4.y = getPt(this->c1.p2.y, this->c2.p3.y, perc);
+  }
+};
+
+class metapoints_quadratic
+{
+  curve_quadratic c1;
+  curve_quadratic c2;
+  vector<point> curvepoints2;
+  vector<point> curvepoints;
+  int pointindex = 0;
+  int cpsize;
+  point lastpoint;
+  int pointspercurve;
+  bool contiguous;
+public:
+  metapoints_quadratic()
+  {
+  }
+  metapoints_quadratic(const int w, const int h, int pointspercurve, bool contiguous)
   {
     this->contiguous = contiguous;
-    this->c1.p1.x = (rand()) / (static_cast <float> (RAND_MAX / w));
-    this->c1.p1.y = (rand()) / (static_cast <float> (RAND_MAX / h));
-    this->c1.p2.x = (rand()) / (static_cast <float> (RAND_MAX / w));
-    this->c1.p2.y = (rand()) / (static_cast <float> (RAND_MAX / h));
-    this->c1.p3.x = (rand()) / (static_cast <float> (RAND_MAX / w));
-    this->c1.p3.y = (rand()) / (static_cast <float> (RAND_MAX / h));
+    float fRAND_MAX = static_cast<float>(RAND_MAX);
+    this->c1.p1.x = (rand()) / (fRAND_MAX / w);
+    this->c1.p1.y = (rand()) / (fRAND_MAX / h);
+    this->c1.p2.x = (rand()) / (fRAND_MAX / w);
+    this->c1.p2.y = (rand()) / (fRAND_MAX / h);
+    this->c1.p3.x = (rand()) / (fRAND_MAX / w);
+    this->c1.p3.y = (rand()) / (fRAND_MAX / h);
     this->c2.p1.x = (this->c1.p2.x + this->c1.p1.x) / 2;
     this->c2.p1.y = (this->c1.p2.y + this->c1.p1.y) / 2;
     this->c2.p2 = this->c1.p2;
@@ -297,8 +374,9 @@ public:
       vector<point>().swap(this->curvepoints2);
       this->c1.p1 = this->c1.p2;
       this->c1.p2 = this->c1.p3;
-      this->c1.p3.x = (rand()) / (static_cast <float> (RAND_MAX / w));
-      this->c1.p3.y = (rand()) / (static_cast <float> (RAND_MAX / h));
+      float fRAND_MAX = static_cast<float>(RAND_MAX);
+      this->c1.p3.x = (rand()) / (fRAND_MAX / w);
+      this->c1.p3.y = (rand()) / (fRAND_MAX / h);
       this->c2.p1.x = (this->c1.p2.x + this->c1.p1.x) / 2;
       this->c2.p1.y = (this->c1.p2.y + this->c1.p1.y) / 2;
       this->c2.p2 = this->c1.p2;
@@ -333,7 +411,7 @@ public:
       else return this->curvepoints[this->pointindex++];
     }
   }
-  ~metapoints()
+  ~metapoints_quadratic()
   {
     vector<point>().swap(curvepoints2); //free memory
   }
