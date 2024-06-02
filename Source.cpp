@@ -1,5 +1,6 @@
 //todo: add error checks for SDL_PollEvent, SDL_DestroyWindow, SDL_DestroyRenderer, SDL_Quit
 //todo: sometimes the program runs with fps being a lot slower for no apparent reason
+//todo: update SDL2
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -239,15 +240,15 @@ vector<point> plotline(point p1, point p2)
 
 class metapoints
 {
-  curve c1;
-  curve c2;
+  curve c1 = curve();
+  curve c2 = curve();
   vector<point> curvepoints2;
   vector<point> curvepoints;
   int pointindex = 0;
-  int cpsize;
-  point lastpoint;
-  int pointspercurve;
-  bool contiguous;
+  int cpsize = 0;
+  point lastpoint = point();
+  int pointspercurve = 0;
+  bool contiguous = false;
 public:
   metapoints()
   {
@@ -951,6 +952,7 @@ int main(int argc, char* argv[])
             SDL_Quit();
             //delete [] screen;
             //delete [] timepercanchors;
+            cout << endl;
             show_console_cursor(true);
             if (dowrite)
             {
