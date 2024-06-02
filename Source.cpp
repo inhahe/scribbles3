@@ -1,4 +1,5 @@
 //todo: add error checks for SDL_PollEvent, SDL_DestroyWindow, SDL_DestroyRenderer, SDL_Quit
+//todo: sometimes the program runs with fps being a lot slower for no apparent reason
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -575,7 +576,7 @@ int parsecommandline(int argc, char* argv[])
         "increase this to make the loops longer. defaults to 5")
       ("w", value<int>(), "window width. defaults to 1000. I recommend a square aspect ratio; otherwise the graphics are "
         "kinda skewed")
-      ("h", value<int>(), "window height. defaults to 1000. smaller width and height make the program run faster")
+      ("h", value<int>(), "window height. defaults to 1000. smaller width and height make the program run faster  ")
       ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or #000000 if "
         "--rotatehue is enabled")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
@@ -665,21 +666,29 @@ GifWriter writer = {};
 
 #ifdef _WIN32
 BOOL WINAPI consoleHandler(DWORD signal) {
-  if (signal == CTRL_C_EVENT)
+  switch (signal)
   {
+  case CTRL_C_EVENT:
+  case CTRL_CLOSE_EVENT:
+  case CTRL_BREAK_EVENT:
+  case CTRL_LOGOFF_EVENT:
+  case CTRL_SHUTDOWN_EVENT:
     if (dowrite)
     {
       GifEnd(&writer);
       display_warning();
-      running = false;
     }
-    else
+    else if (signal != CTRL_CLOSE_EVENT)
     {
       show_console_cursor(true);
       cout << endl << endl;
     }
+    running = false;
+    if (signal == CTRL_CLOSE_EVENT) return TRUE;
+    return FALSE;
+  default:
+    return FALSE;
   }
-  return not running; //wait wtf?
 }
 #elif __linux__
 void my_handler(int s) {
