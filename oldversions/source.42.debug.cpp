@@ -1,7 +1,9 @@
+//todo: on linux the percentage erases after it's finished for some reason
 //todo: add more error checks
 #include <vector>
 #include <cstdint>
 #include <iostream>
+#include <fstream> //debug
 #include <gif.h>
 #include <cstring>
 #include <chrono>
@@ -60,7 +62,11 @@ void set_cursor(int x = 0, int y = 0)
   handle = GetStdHandle(STD_OUTPUT_HANDLE);
   coordinates.X = x;
   coordinates.Y = y;
-  SetConsoleCursorPosition(handle, coordinates);
+  ofstream outfile;
+  outfile.open("debug.txt", ios_base::app); //debug
+  outfile << SetConsoleCursorPosition(handle, coordinates) << endl << GetLastError << endl; //debug
+  outfile.close();
+
 #elif __linux__
   cout << "\033[" << y << ";" << x << "H" << flush;
 #endif
@@ -132,9 +138,13 @@ void show_console_cursor(const bool show)
 #if defined(_WIN32)
   static const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
   CONSOLE_CURSOR_INFO cci;
-  GetConsoleCursorInfo(handle, &cci);
+  ofstream outfile;
+  outfile.open("debug.txt", ios_base::app); //debug
+  outfile << GetConsoleCursorInfo(handle, &cci) << endl << GetLastError << endl; //debug
   cci.bVisible = show; // show/hide cursor
-  SetConsoleCursorInfo(handle, &cci);
+  outfile << SetConsoleCursorInfo(handle, &cci) << endl << GetLastError << endl; //debug
+  outfile.close(); //debug
+
 #elif defined(__linux__)
   cout << (show ? "\033[?25h" : "\033[?25l") << flush; // show/hide cursor
 #endif // Windows/Linux
@@ -408,13 +418,8 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   bool* sp_screen = nullptr;
   uint8_t* sp_pixels = nullptr;
   int pitch;
-  Uint32 fgint_screen = 0;
-  Uint32 bgint_screen = 0;
-  if (not noscreen)
-  {
-    bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
-    fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
-  }
+  Uint32 bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
+  Uint32 fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
   Uint32 bgint_image = bg.r + (bg.g << 8) + (bg.b << 16) + 0xff000000;
   Uint32 fgint_image = fg.r + (fg.g << 8) + (fg.b << 16) + 0xff000000;
   uint8_t* sp_image = image;
@@ -651,7 +656,22 @@ BOOL WINAPI consoleHandler(DWORD signal) {
   return not running; //wait wtf?
 }
 #elif __linux__
-void my_handler(int s) {
+//void sigint(int a)
+//{
+//  if (dowrite)
+//  {
+//    GifEnd(&writer);
+//    display_warning();
+//    running = false;
+//  }
+//  else
+//  {
+//    show_console_cursor(true);
+//    cout << endl << endl << flush; //why doesn't this work?
+//  }
+//}
+void termination_handler(int signum)
+{
   if (dowrite)
   {
     GifEnd(&writer);
@@ -661,9 +681,8 @@ void my_handler(int s) {
   else
   {
     show_console_cursor(true);
-    cout << endl;
+    cout << endl << endl << flush; //why doesn't this work?
   }
-  exit(1);
 }
 #endif
 
@@ -671,14 +690,6 @@ int main(int argc, char* argv[])
 {
 #ifdef _WIN32
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
-#elif __linux__
-  struct sigaction sigIntHandler;
-
-  sigIntHandler.sa_handler = my_handler;
-  sigemptyset(&sigIntHandler.sa_mask);
-  sigIntHandler.sa_flags = 0;
-
-  sigaction(SIGINT, &sigIntHandler, NULL);
 #endif
   float hue = 160;
 
@@ -820,12 +831,9 @@ int main(int argc, char* argv[])
       {
         if (not running)
         {
-          if (not noscreen)
-          {
-            SDL_DestroyWindow(window);
-            SDL_DestroyRenderer(renderer);
-            SDL_Quit();
-          }
+          SDL_DestroyWindow(window);
+          SDL_DestroyRenderer(renderer);
+          SDL_Quit();
           display_warning(percent_cursor_pos);
           return  0;
         }
@@ -890,8 +898,8 @@ int main(int argc, char* argv[])
       if (dowrite) 
       {
         set_cursor(percent_cursor_pos.X, percent_cursor_pos.Y);
-        cout << "100% done" << endl << flush; 
-        show_console_cursor(true); 
+        cout << "100% done" << endl << flush; //doesn't work for some reason when --file and --noscreen are enabled. 
+        show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. i don't think this code is being run at all in that case. it works on Linux.
         GifEnd(&writer);
         if (not noscreen)
         {
