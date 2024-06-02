@@ -45,6 +45,7 @@ add the stage\lib directory under your Boost directory, e.g. C:\local\boost_1_81
 
 The hard part, though, is building Boost and SDL2.
 
+Command line options:
 
 ```
  --help                 This help screen
