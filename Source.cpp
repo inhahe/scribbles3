@@ -1,6 +1,7 @@
 //todo: add error checks for SDL_PollEvent, SDL_DestroyWindow, SDL_DestroyRenderer, SDL_Quit
 //todo: sometimes the program runs with fps being a lot slower for no apparent reason
 //todo: update SDL2
+ //why do gifs sometimes have defects when they're aborted? they shouldn't.
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -697,7 +698,7 @@ void my_handler(int s) {
   {
     GifEnd(&writer);
     display_warning();
-    exit(EXIT_FAILURE)
+    exit(EXIT_FAILURE);
   }
   else
   {
