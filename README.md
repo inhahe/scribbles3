@@ -1,7 +1,7 @@
 # scribbles3
 Makes cool animated designs with command-line parameters. Can save to animated gif. 
 
-Here are some examples of what it can do:
+Here are some examples of what it can do (click on the images to start the animation):
 
 ![test](https://github.com/inhahe/scribbles3/assets/61786/134d331d-4d9e-4aca-ac27-4e1632bc1d03)
 
