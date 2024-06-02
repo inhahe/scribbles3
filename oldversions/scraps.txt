@@ -1,0 +1,28 @@
+//void sigint(int a)
+//{
+//  if (dowrite)
+//  {
+//    GifEnd(&writer);
+//    display_warning();
+//    running = false;
+//  }
+//  else
+//  {
+//    show_console_cursor(true);
+//    cout << endl << endl << flush; //why doesn't this work?
+//  }
+//}
+//void termination_handler(int signum)
+//{
+//  if (dowrite)
+//  {
+//    GifEnd(&writer);
+//    display_warning();
+//    running = false;
+//  }
+//  else
+//  {
+//    show_console_cursor(true);
+//    cout << endl << endl << flush; //why doesn't this work?
+//  }
+//}
