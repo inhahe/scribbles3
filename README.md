@@ -25,6 +25,7 @@ Dependencies:
 - SDL2
 
 Linux installation:\
+`sudo apt update && sudo apt install build-essential` if you don't already have G++\
 `sudo apt-get install libsdl2-dev`\
 `sudo apt-get install libboost-all-dev`\
 `git clone https://github.com/inhahe/scribbles3`\
