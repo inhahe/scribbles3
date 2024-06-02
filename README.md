@@ -48,7 +48,7 @@ The hard part, though, is building Boost and SDL2.
 Command line options:
 
 ```
- --help                 This help screen
+  --help                 This help screen
   --seed arg             randomization seed. use this to get the same exact
                          pattern you got before (but some of the other options
                          will eliminate all similarity in the pattern if
