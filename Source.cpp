@@ -703,7 +703,7 @@ void my_handler(int s) {
   else
   {
     show_console_cursor(true);
-    cout << endl;
+    cout << endl << endl; 
     exit(EXIT_SUCCESS);
   }
 }
@@ -868,7 +868,7 @@ int main(int argc, char* argv[])
           SDL_DestroyWindow(window);
           SDL_DestroyRenderer(renderer);
           SDL_Quit();
-          cout << endl;
+          cout << endl << endl;
           return 0;
         }
       }
@@ -953,7 +953,7 @@ int main(int argc, char* argv[])
             SDL_Quit();
             //delete [] screen;
             //delete [] timepercanchors;
-            cout << endl;
+            cout << endl << endl;
             show_console_cursor(true);
             if (dowrite)
             {
