@@ -15,7 +15,7 @@ https://github.com/inhahe/scribbles3/assets/61786/80c9f098-0e14-4bc7-9885-577942
 
 ![1624688246864199680](https://github.com/inhahe/scribbles3/assets/61786/b960cde4-002e-4253-bb45-e34b2da05822)
 
-I used to draw designs like what this makes, on paper, a long time ago, and for many years I wanted to create it progammatically, but I just couldn't quite figure out how I could do it. But recently I started thinking about it again and coding, and I had a couple of realizations that made it possible.
+I used to draw designs like what this makes (the first pic), on paper, a long time ago, and for many years I wanted to create it progammatically, but I just couldn't quite figure out how I could do it. But recently I started thinking about it again and coding, and I had a couple of realizations that made it possible.
 
 This program runs on both Linux and Windows.
 
