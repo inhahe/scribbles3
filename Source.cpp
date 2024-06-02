@@ -730,6 +730,10 @@ int main(int argc, char* argv[])
     contiguous = false;
     noloop = false;
   }
+  if ((not enable_vsync) && (not noloop) && not dowrite)
+  {
+    cout << endl << "Using --vsync is recommended when using --loop; otherwise it'll probably run too fast." << endl;
+  }
 
   bool* screen = new bool[w * h];
   uint8_t* image = nullptr;
