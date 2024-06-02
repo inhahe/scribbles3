@@ -1,4 +1,7 @@
 //todo: add more error checks
+//todo: the screen randomly slows down or hangs when using --vsync while the fps still gets updated and it takes a long time to quit the console part of the program
+//returned error `Parameter 'texture' is invalid` once
+//slows down the whole computer
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -410,7 +413,7 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   int pitch;
   Uint32 fgint_screen = 0;
   Uint32 bgint_screen = 0;
-  if (not noscreen)
+    if (not noscreen)
   {
     bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
     fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
@@ -418,6 +421,7 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   Uint32 bgint_image = bg.r + (bg.g << 8) + (bg.b << 16) + 0xff000000;
   Uint32 fgint_image = fg.r + (fg.g << 8) + (fg.b << 16) + 0xff000000;
   uint8_t* sp_image = image;
+  SDL_Texture* texture;
   for (int i = 0; i < s * 2; i++)
   {
     point p = disppoints[i % s];
@@ -439,7 +443,14 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   {
     pixels = (uint8_t*)(surface->pixels);
     pitch = surface->pitch;
-    if (SDL_MUSTLOCK(surface)) SDL_LockSurface(surface);
+    if (SDL_MUSTLOCK(surface))
+    {
+      if (SDL_LockSurface(surface) < 0)
+      {
+        cout << "SDL_LockSurface(surface): " << SDL_GetError() << endl;
+        exit(1);
+      }
+    }
   }
   sp_screen = screen;
   sp_image = image;
@@ -474,11 +485,27 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   if (not noscreen)
   {
     if (SDL_MUSTLOCK(surface)) SDL_UnlockSurface(surface);
-    if (enable_vsync)
+    if (enable_vsync) 
     {
-      SDL_RenderCopy(renderer, SDL_CreateTextureFromSurface(renderer, surface), NULL, NULL);
+      texture = SDL_CreateTextureFromSurface(renderer, surface);
+      if (texture == NULL)
+      {
+        cout << endl << "SDL_CreateTextureFromSurface(renderer, surface), NULL, NULL): " << SDL_GetError() << endl;
+        exit(1);
+      }
+      if (SDL_RenderCopy(renderer, texture, NULL, NULL) < 0)
+      {
+        cout << endl << "SDL_RenderCopy(renderer, texture, NULL, NULL) < 0): " << SDL_GetError() << endl;
+        exit(1);
+      }
       SDL_RenderPresent(renderer);
-    }
+      if (SDL_RenderClear(renderer) < 0)  //"You are strongly encouraged to call SDL_RenderClear() to initialize the backbuffer 
+      {                                   //before starting each new frame's drawing, even if you plan to overwrite every pixel." 
+        cout << endl << "(SDL_RenderClear(renderer): " << SDL_GetError() << endl;   //- https://wiki.libsdl.org/SDL2/SDL_RenderPresent
+        exit(1);
+      }
+      SDL_DestroyTexture(texture); //dunno why we can't just make texture once in main and use it over and over? 
+    }                              //screen is black when I do that
     else
     {
       SDL_UpdateWindowSurface(window);
@@ -645,7 +672,7 @@ BOOL WINAPI consoleHandler(DWORD signal) {
     else
     {
       show_console_cursor(true);
-      cout << endl;
+      cout << endl << endl;
     }
   }
   return not running; //wait wtf?
@@ -684,6 +711,7 @@ int main(int argc, char* argv[])
 
   if (parsecommandline(argc, argv)) return 0;
   noscreen = noscreen && dowrite;
+  enable_vsync = enable_vsync && not noscreen;
   if (dowrite)
   {
     contiguous = false;
@@ -696,6 +724,7 @@ int main(int argc, char* argv[])
   SDL_Renderer* renderer = nullptr;
   SDL_Window* window = nullptr;
   SDL_Surface* surface = nullptr;
+  SDL_Texture* texture = nullptr;
   SDL_PixelFormat* pixel_format_surface = nullptr;
   SDL_Event event;
   vector<point> dispanchors;
@@ -733,8 +762,22 @@ int main(int argc, char* argv[])
     if (enable_vsync)
     {
       surface = SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0);
+      if (surface == NULL)
+      {
+        cout << endl << "SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0): " << SDL_GetError() << endl;
+        exit(1);
+      }
       renderer = SDL_CreateRenderer(window, -1, 0);
-      SDL_RenderClear(renderer);
+      if (renderer == NULL)
+      {
+        cout << endl << "SDL_CreateRenderer(window, -1, 0): " << SDL_GetError() << endl;
+        exit(1);
+      }
+      if (SDL_RenderClear(renderer) < 0)  //"You are strongly encouraged to call SDL_RenderClear() to initialize the backbuffer 
+      {                                   //before starting each new frame's drawing, even if you plan to overwrite every pixel." 
+        cout << endl << "(SDL_RenderClear(renderer): " << SDL_GetError() << endl;   //- https://wiki.libsdl.org/SDL2/SDL_RenderPresent
+        exit(1);
+      }
     }
     else
     {
