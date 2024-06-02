@@ -22,7 +22,6 @@ struct COORD { int X, Y; };
 #endif
 #include <boost/program_options.hpp>
 #include <boost/regex.hpp>
-#define fRAND_MAX static_cast <float> (RAND_MAX) 
 using namespace std;
 using namespace boost::program_options;
 using namespace boost;
@@ -55,7 +54,6 @@ bool noscreen = false;
 bool running = true;
 int framespan = 50;
 bool enable_vsync = false;
-
 
 void set_cursor(int x = 0, int y = 0)
 {
@@ -259,13 +257,12 @@ public:
   metapoints(const int w, const int h, int pointspercurve, bool contiguous)
   {
     this->contiguous = contiguous;
-    //method 1
-    this->c1.p1.x = (rand()) / (fRAND_MAX / w);
-    this->c1.p1.y = (rand()) / (fRAND_MAX / h);
-    this->c1.p2.x = (rand()) / (fRAND_MAX / w);
-    this->c1.p2.y = (rand()) / (fRAND_MAX / h);
-    this->c1.p3.x = (rand()) / (fRAND_MAX / w);
-    this->c1.p3.y = (rand()) / (fRAND_MAX / h);
+    this->c1.p1.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+    this->c1.p1.y = (rand()) / (static_cast <float> (RAND_MAX / h));
+    this->c1.p2.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+    this->c1.p2.y = (rand()) / (static_cast <float> (RAND_MAX / h));
+    this->c1.p3.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+    this->c1.p3.y = (rand()) / (static_cast <float> (RAND_MAX / h));
     this->c2.p1.x = (this->c1.p2.x + this->c1.p1.x) / 2;
     this->c2.p1.y = (this->c1.p2.y + this->c1.p1.y) / 2;
     this->c2.p2 = this->c1.p2;
@@ -303,8 +300,8 @@ public:
       vector<point>().swap(this->curvepoints2);
       this->c1.p1 = this->c1.p2;
       this->c1.p2 = this->c1.p3;
-      this->c1.p3.x = (rand()) / (fRAND_MAX / w);
-      this->c1.p3.y = (rand()) / (fRAND_MAX / h);
+      this->c1.p3.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+      this->c1.p3.y = (rand()) / (static_cast <float> (RAND_MAX / h));
       this->c2.p1.x = (this->c1.p2.x + this->c1.p1.x) / 2;
       this->c2.p1.y = (this->c1.p2.y + this->c1.p1.y) / 2;
       this->c2.p2 = this->c1.p2;
@@ -351,8 +348,8 @@ vector<point> randanchors(int w, int h, int numpoints)
   for (int i = 0; i < numpoints; i++)
   {
     point p;
-    p.x = int(rand() / (fRAND_MAX / w));
-    p.y = int(rand() / (fRAND_MAX / h));
+    p.x = int(rand() / (static_cast <float> (RAND_MAX / w)));
+    p.y = int(rand() / (static_cast <float> (RAND_MAX / h)));
     anchors.push_back(p);
   }
   return anchors;
