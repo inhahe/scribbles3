@@ -17,20 +17,32 @@ https://github.com/inhahe/scribbles3/assets/61786/80c9f098-0e14-4bc7-9885-577942
 
 I used to draw designs like what this makes, on paper, a long time ago, and for many years I wanted to create it progammatically, but I just couldn't quite figure out how I could do it. But recently I started thinking about it again and coding, and I had a couple of realizations that made it possible.
 
+This program runs on both Linux and Windows.\
+
 Dependencies:
 - boost_program_options
 - boost_regex
 - SDL2
 
 Linux installation:\
-Install SDL2 with `sudo apt-get install libsdl2-dev`\
-Install Boost with `sudo apt-get install libboost-all-dev`
+`sudo apt-get install libsdl2-dev`\
+`sudo apt-get install libboost-all-dev`\
+`git clone https://github.com/inhahe/scribbles3`\
+`cd scribbles3`\
+`make`
 
-Windows installation: 
-I don't remember and it's way too complicated, just download scribbles3.exe and SDL2.dll from the latest release.
+Windows installation:\
+I don't remember and it's way too complicated, just download scribbles3.exe and SDL2.dll from the latest release.\
 
-This program runs on both Linux and Windows.\
-For Windows, you'll have to set Additional Include Directories and Additional Library Directories in Visual Studio to point to your Boost and SDL2 directories.
+I do know that you'd have to to set Additional Include Directories and Additional Library Directories in Visual Studio to point to your Boost and SDL2 directories.\
+Right-click on the project name in Solution Explorer\
+go to Configuration properties->C/C++->General->Additional Include Directories and add your SDL2 directory and your Boost directory\
+go to Configuration properties->Linker->General->Additionals Library Directories\
+add the Release directory under your SDL2 directory, e.g. C:\SDL2\Release\
+add the stage\lib directory under your Boost directory, e.g. C:\local\boost_1_81_0\stage\lib
+
+The hard part, though, is making Boost and SDL2.
+
 
 ```
  --help                 This help screen
