@@ -38,10 +38,10 @@ I don't remember and it's way too complicated, just download scribbles3.exe and 
 
 I do know that you'd have to to set Additional Include Directories and Additional Library Directories in Visual Studio to point to your Boost and SDL2 directories.\
 Right-click on the project name in Solution Explorer\
-go to Configuration properties->C/C++->General->Additional Include Directories and add your SDL2 directory and your Boost directory\
-go to Configuration properties->Linker->General->Additionals Library Directories\
-add the Release directory under your SDL2 directory, e.g. C:\SDL2\Release\
-add the stage\lib directory under your Boost directory, e.g. C:\local\boost_1_81_0\stage\lib
+Go to Configuration properties->C/C++->General->Additional Include Directories and add your SDL2 directory and your Boost directory\
+Go to Configuration properties->Linker->General->Additionals Library Directories\
+Add the Release directory under your SDL2 directory, e.g. C:\SDL2\Release\
+Add the stage\lib directory under your Boost directory, e.g. C:\local\boost_1_81_0\stage\lib
 
 The hard part, though, is building Boost and SDL2.
 
