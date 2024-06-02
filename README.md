@@ -43,7 +43,7 @@ go to Configuration properties->Linker->General->Additionals Library Directories
 add the Release directory under your SDL2 directory, e.g. C:\SDL2\Release\
 add the stage\lib directory under your Boost directory, e.g. C:\local\boost_1_81_0\stage\lib
 
-The hard part, though, is making Boost and SDL2.
+The hard part, though, is building Boost and SDL2.
 
 
 ```
