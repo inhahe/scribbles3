@@ -409,8 +409,13 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   bool* sp_screen = nullptr;
   uint8_t* sp_pixels = nullptr;
   int pitch;
-  Uint32 bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
-  Uint32 fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
+  Uint32 fgint_screen = 0;
+  Uint32 bgint_screen = 0;
+  if (not noscreen)
+  {
+    bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
+    fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
+  }
   Uint32 bgint_image = bg.r + (bg.g << 8) + (bg.b << 16) + 0xff000000;
   Uint32 fgint_image = fg.r + (fg.g << 8) + (fg.b << 16) + 0xff000000;
   uint8_t* sp_image = image;
@@ -647,22 +652,7 @@ BOOL WINAPI consoleHandler(DWORD signal) {
   return not running; //wait wtf?
 }
 #elif __linux__
-//void sigint(int a)
-//{
-//  if (dowrite)
-//  {
-//    GifEnd(&writer);
-//    display_warning();
-//    running = false;
-//  }
-//  else
-//  {
-//    show_console_cursor(true);
-//    cout << endl << endl << flush; //why doesn't this work?
-//  }
-//}
-void termination_handler(int signum)
-{
+void my_handler(int s) {
   if (dowrite)
   {
     GifEnd(&writer);
@@ -672,8 +662,9 @@ void termination_handler(int signum)
   else
   {
     show_console_cursor(true);
-    cout << endl << endl << flush; //why doesn't this work?
+    cout << endl;
   }
+  exit(1);
 }
 #endif
 
@@ -681,6 +672,14 @@ int main(int argc, char* argv[])
 {
 #ifdef _WIN32
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
+#elif __linux__
+  struct sigaction sigIntHandler;
+
+  sigIntHandler.sa_handler = my_handler;
+  sigemptyset(&sigIntHandler.sa_mask);
+  sigIntHandler.sa_flags = 0;
+
+  sigaction(SIGINT, &sigIntHandler, NULL);
 #endif
   float hue = 160;
 
@@ -822,9 +821,12 @@ int main(int argc, char* argv[])
       {
         if (not running)
         {
-          SDL_DestroyWindow(window);
-          SDL_DestroyRenderer(renderer);
-          SDL_Quit();
+          if (not noscreen)
+          {
+            SDL_DestroyWindow(window);
+            SDL_DestroyRenderer(renderer);
+            SDL_Quit();
+          }
           display_warning(percent_cursor_pos);
           return  0;
         }
@@ -886,10 +888,11 @@ int main(int argc, char* argv[])
           }
         }
       }
-      if (dowrite) {
+      if (dowrite) 
+      {
         set_cursor(percent_cursor_pos.X, percent_cursor_pos.Y);
-        cout << "100% done" << endl << flush; //doesn't work for some reason when --file and --noscreen are enabled. 
-        show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. i don't think this code is being run at all in that case. it works on Linux.
+        cout << "100% done" << endl << flush; 
+        show_console_cursor(true); 
         GifEnd(&writer);
         if (not noscreen)
         {
