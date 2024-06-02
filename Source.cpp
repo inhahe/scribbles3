@@ -1,4 +1,4 @@
-//todo: add more error checks
+//todo: add error checks for SDL_PollEvent, SDL_DestroyWindow, SDL_DestroyRenderer, SDL_Quit
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -410,7 +410,7 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   int pitch;
   Uint32 fgint_screen = 0;
   Uint32 bgint_screen = 0;
-    if (not noscreen)
+  if (not noscreen)
   {
     bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
     fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
@@ -444,8 +444,8 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
     {
       if (SDL_LockSurface(surface) < 0)
       {
-        cout << "SDL_LockSurface(surface): " << SDL_GetError() << endl;
-        exit(1);
+        cout << endl << "SDL_LockSurface(surface): " << SDL_GetError() << endl;
+        exit(EXIT_FAILURE);
       }
     }
   }
@@ -488,24 +488,28 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
       if (texture == NULL)
       {
         cout << endl << "SDL_CreateTextureFromSurface(renderer, surface), NULL, NULL): " << SDL_GetError() << endl;
-        exit(1);
+        exit(EXIT_FAILURE);
       }
       if (SDL_RenderCopy(renderer, texture, NULL, NULL) < 0)
       {
         cout << endl << "SDL_RenderCopy(renderer, texture, NULL, NULL) < 0): " << SDL_GetError() << endl;
-        exit(1);
+        exit(EXIT_FAILURE);
       }
       SDL_RenderPresent(renderer);
       if (SDL_RenderClear(renderer) < 0)  //"You are strongly encouraged to call SDL_RenderClear() to initialize the backbuffer 
       {                                   //before starting each new frame's drawing, even if you plan to overwrite every pixel." 
         cout << endl << "(SDL_RenderClear(renderer): " << SDL_GetError() << endl;   //- https://wiki.libsdl.org/SDL2/SDL_RenderPresent
-        exit(1);
+        exit(EXIT_FAILURE);
       }
       SDL_DestroyTexture(texture); //dunno why we can't just make texture once in main and use it over and over? 
     }                              //screen is black when I do that
     else
     {
-      SDL_UpdateWindowSurface(window);
+      if (SDL_UpdateWindowSurface(window) < 0)
+      {
+        cout << endl << "SDL_UpdateWindowSurface(window): " << SDL_GetError() << endl;
+        exit(EXIT_FAILURE);
+      }
     }
   }
   if (dowrite)
@@ -518,11 +522,14 @@ rgb hex2rgb(string s)
 {
   rgb rgb2;
   smatch sm;
-  regex_match(s, sm, regex("[#]?(\\w{2})(\\w{2})(\\w{2})"));
-
+  if (not (regex_match(s, sm, regex("[#]?(\\w{2})(\\w{2})(\\w{2})"))))
+  {
+    cout << "Invalid color specification: " << s << endl;
+    exit(EXIT_FAILURE);
+  }
   rgb2.r = stoi(sm[1], nullptr, 16);
-  rgb2.b = stoi(sm[2], nullptr, 16);
-  rgb2.g = stoi(sm[3], nullptr, 16);
+  rgb2.g = stoi(sm[2], nullptr, 16);
+  rgb2.b = stoi(sm[3], nullptr, 16);
   return rgb2;
 }
 
@@ -569,8 +576,8 @@ int parsecommandline(int argc, char* argv[])
       ("w", value<int>(), "window width. defaults to 1000. I recommend a square aspect ratio; otherwise the graphics are "
         "kinda skewed")
       ("h", value<int>(), "window height. defaults to 1000. smaller width and height make the program run faster")
-      ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or "
-        "#000000 if --rotatehue is enabled")
+      ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or #000000 if "
+        "--rotatehue is enabled")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
       ("rotatehue", "make fgcolor cycle through the hues. overrides --fgcolor")
       ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. "
@@ -680,14 +687,14 @@ void my_handler(int s) {
   {
     GifEnd(&writer);
     display_warning();
-    running = false;
+    exit(EXIT_FAILURE)
   }
   else
   {
     show_console_cursor(true);
     cout << endl;
+    exit(EXIT_SUCCESS);
   }
-  exit(1);
 }
 #endif
 
@@ -753,32 +760,46 @@ int main(int argc, char* argv[])
   show_console_cursor(false);
   if (not noscreen)
   {
-    SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "1", SDL_HINT_OVERRIDE); //why doesn't this work?
-    SDL_Init(SDL_INIT_EVERYTHING);
+    if (SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "1", SDL_HINT_OVERRIDE) != SDL_TRUE) cout << "Could not set vsync. It may not be available on your platform." << endl;
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+    {
+      cout << "SDL_Init(SDL_INIT_EVERYTHING): " << SDL_GetError() << endl;
+      exit(EXIT_FAILURE);
+    }
     window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI);
+    if (window == NULL)
+    {
+      cout << "SDL_CreateWindow(\"scribbles\", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI): " << SDL_GetError() << endl;
+      exit(EXIT_FAILURE);
+    }
     if (enable_vsync)
     {
       surface = SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0);
       if (surface == NULL)
       {
-        cout << endl << "SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0): " << SDL_GetError() << endl;
-        exit(1);
+        cout << "SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0): " << SDL_GetError() << endl;
+        exit(EXIT_FAILURE);
       }
       renderer = SDL_CreateRenderer(window, -1, 0);
       if (renderer == NULL)
       {
-        cout << endl << "SDL_CreateRenderer(window, -1, 0): " << SDL_GetError() << endl;
-        exit(1);
+        cout << "SDL_CreateRenderer(window, -1, 0): " << SDL_GetError() << endl;
+        exit(EXIT_FAILURE);
       }
       if (SDL_RenderClear(renderer) < 0)  //"You are strongly encouraged to call SDL_RenderClear() to initialize the backbuffer 
       {                                   //before starting each new frame's drawing, even if you plan to overwrite every pixel." 
-        cout << endl << "(SDL_RenderClear(renderer): " << SDL_GetError() << endl;   //- https://wiki.libsdl.org/SDL2/SDL_RenderPresent
-        exit(1);
+        cout << "(SDL_RenderClear(renderer): " << SDL_GetError() << endl;   //- https://wiki.libsdl.org/SDL2/SDL_RenderPresent
+        exit(EXIT_FAILURE);
       }
     }
     else
     {
       surface = SDL_GetWindowSurface(window);
+      if (surface == NULL)
+      {
+        cout << "SDL_GetWindowSurface(window): " << SDL_GetError() << endl;
+        exit(EXIT_FAILURE);
+      }
     }
     pixel_format_surface = surface->format;
   }
