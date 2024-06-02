@@ -22,7 +22,14 @@ Dependencies:
 - boost_regex
 - SDL2
 
-This program runs on both Linux and Windows. 
+Linux installation:\
+Install SDL2 with `sudo apt-get install libsdl2-dev`\
+Install Boost with `sudo apt-get install libboost-all-dev`
+
+Windows installation: 
+I don't remember and it's way too complicated, just download scribbles3.exe and SDL2.dll from the latest release.
+
+This program runs on both Linux and Windows.\
 For Windows, you'll have to set Additional Include Directories and Additional Library Directories in Visual Studio to point to your Boost and SDL2 directories.
 
 ```
