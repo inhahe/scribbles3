@@ -29,10 +29,12 @@ Linux installation:\
 `sudo apt-get install libboost-all-dev`\
 `git clone https://github.com/inhahe/scribbles3`\
 `cd scribbles3`\
-`make`
+`make`\
+To run it:\
+`./scribbles3`
 
 Windows installation:\
-I don't remember and it's way too complicated, just download scribbles3.exe and SDL2.dll from the latest release.\
+I don't remember and it's way too complicated, just download scribbles3.exe and SDL2.dll from the latest release.
 
 I do know that you'd have to to set Additional Include Directories and Additional Library Directories in Visual Studio to point to your Boost and SDL2 directories.\
 Right-click on the project name in Solution Explorer\
