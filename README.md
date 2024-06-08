@@ -50,6 +50,7 @@ The hard part, though, is building Boost and SDL2.
 Command line options:
 
 ```
+Options:
   --help                 This help screen
   --seed arg             randomization seed. use this to get the same exact
                          pattern you got before (but some of the other options
@@ -93,7 +94,8 @@ Command line options:
                          through time, but skip pixels. this will have the
                          effect of making the animation change faster.
                          --incontiguous is automatically enabled when --loop or
-                         --file is enabled
+                         --file is enabled. I recommend using --vsync with
+                         --incontiguous; otherwise it'll go way too fast
   --spacecurvepoints arg number of points calculated on each bezier curve in
                          space. lines are drawn between each point. defaults to
                          100. make this 1 for a jagged effect
