@@ -1,7 +1,8 @@
 //todo: add error checks for SDL_PollEvent, SDL_DestroyWindow, SDL_DestroyRenderer, SDL_Quit
 //todo: sometimes the program runs with fps being a lot slower for no apparent reason
 //todo: update SDL2
- //why do gifs sometimes have defects when they're aborted? they shouldn't.
+//why do gifs sometimes have defects when they're aborted? they shouldn't.
+//todo: when using --incontiguous without --loop, it stutters every couple of seconds
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -598,7 +599,8 @@ int parsecommandline(int argc, char* argv[])
         "way too fast")
       ("incontiguous", "make it so that spacecurves don't move contiguously through time, but skip pixels. "
         "this will have the effect of making the animation change faster. --incontiguous is automatically "
-        "enabled when --loop or --file is enabled")
+        "enabled when --loop or --file is enabled. I recommend using --vsync with --incontiguous; otherwise it'll "
+        "go way too fast")
       ("spacecurvepoints", value<int>(),
         "number of points calculated on each bezier curve in space. "
         "lines are drawn between each point. defaults to 100. "
@@ -735,9 +737,9 @@ int main(int argc, char* argv[])
     contiguous = false;
     noloop = false;
   }
-  if ((not enable_vsync) && (not noloop) && not dowrite)
+  if ((not enable_vsync) && ((not noloop) or not contiguous) && not dowrite)
   {
-    cout << endl << "Using --vsync is recommended when using --loop; otherwise it'll probably run too fast." << endl;
+    cout << endl << "Using --vsync is recommended when using --loop or --incontiguous; otherwise it'll probably run too fast." << endl;
   }
 
   bool* screen = new bool[w * h];
