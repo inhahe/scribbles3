@@ -2,6 +2,7 @@
 //todo: sometimes the program runs with fps being a lot slower for no apparent reason
 //todo: update SDL2
 //why do gifs sometimes have defects when they're aborted? they shouldn't.
+//todo: when using --incontiguous without --loop, it stutters every couple of seconds
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -325,12 +326,12 @@ public:
         this->lastpoint = curvepoints.back();
         vector<point>().swap(curvepoints);
         this->cpsize = this->curvepoints2.size();
-        return this->curvepoints2[this->pointindex++];
+        return this->curvepoints2[this->pointindex];
       }
       else
       {
         this->cpsize = this->curvepoints.size();
-        return this->curvepoints[this->pointindex++];
+        return this->curvepoints[this->pointindex];
       }
     }
     else
