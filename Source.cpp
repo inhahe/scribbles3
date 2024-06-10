@@ -587,7 +587,7 @@ int parsecommandline(int argc, char* argv[])
         "--rotatehue is enabled")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
       ("rotatehue", "make fgcolor cycle through the hues. overrides --fgcolor")
-      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. "
+      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. floating point. "
         "ignored if --file or --loop is enabled. defaults to 1. hue cycles from 0 to 360")
       ("huemult", value<int>(), "if --loop or --file is enabled and --rotatehue is enabled, --huemult "
         "specifies how many times to cycle through hues per time loop. defaults to 1")
@@ -644,7 +644,11 @@ int parsecommandline(int argc, char* argv[])
     if (vm.count("saturation")) sat = vm["saturation"].as<float>();
     if (vm.count("value")) val = vm["value"].as<float>();
     if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
-    if (vm.count("huespeed")) huespeed = vm["huespeed"].as<float>();
+    if (vm.count("huespeed"))
+    {
+      huespeed = vm["huespeed"].as<float>();
+      huespeed = copysign(fmod(fabs(huespeed), 360), huespeed);
+    }
     if (vm.count("huemult")) huemult = vm["huemult"].as<int>();
     if (argc == 1) cout << desc;
   }
