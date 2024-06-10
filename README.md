@@ -78,8 +78,8 @@ Options:
   --rotatehue            make fgcolor cycle through the hues. overrides
                          --fgcolor
   --huespeed arg         amount to increment hue per frame if --rotatehue is
-                         enabled. ignored if --file or --loop is enabled.
-                         defaults to 1. hue cycles from 0 to 360
+                         enabled. floating point. defaults to 1. hue cycles
+                         from 0 to 360. ignored if --file or --loop is enabled.
   --huemult arg          if --loop or --file is enabled and --rotatehue is
                          enabled, --huemult specifies how many times to cycle
                          through hues per time loop. defaults to 1
