@@ -587,8 +587,8 @@ int parsecommandline(int argc, char* argv[])
         "--rotatehue is enabled")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
       ("rotatehue", "make fgcolor cycle through the hues. overrides --fgcolor")
-      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. floating point. "
-        "ignored if --file or --loop is enabled. defaults to 1. hue cycles from 0 to 360")
+      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. floating point. defaults "
+        "to 1. hue cycles from 0 to 360. ignored if --file or --loop is enabled.")
       ("huemult", value<int>(), "if --loop or --file is enabled and --rotatehue is enabled, --huemult "
         "specifies how many times to cycle through hues per time loop. defaults to 1")
       ("saturation", value<float>(), "saturation of colors when using --rotatehue. 1 to 100. "
