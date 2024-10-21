@@ -19,6 +19,8 @@ I used to draw designs like what this makes (the first pic), on paper, a long ti
 
 This program runs on both Linux and Windows.
 
+Here's a little information on how it works: https://ask.absturztau.be/@Inhahe/a/113346862968751642
+
 Dependencies:
 - boost_program_options
 - boost_regex
