@@ -1,5 +1,5 @@
 # scribbles3
-Makes cool animated designs with command-line parameters. Can save to animated gif. 
+Makes cool animated patterns with command-line parameters. Can save to animated gif. 
 
 Here are some examples of what it can do (click on the images to start the animation):
 
