@@ -1,5 +1,5 @@
 # scribbles3
-Makes cool animated designs with command-line parameters. Can save to animated gif. 
+Makes cool animated patterns with command-line parameters. Can save to animated gif. 
 
 Here are some examples of what it can do (click on the images to start the animation):
 
@@ -18,6 +18,8 @@ https://github.com/inhahe/scribbles3/assets/61786/80c9f098-0e14-4bc7-9885-577942
 I used to draw designs like what this makes (the first pic), on paper, a long time ago, and for many years I wanted to create it progammatically, but I just couldn't quite figure out how I could do it. But recently I started thinking about it again and coding, and I had a couple of realizations that made it possible.
 
 This program runs on both Linux and Windows.
+
+Here's a little information on how it works: https://ask.absturztau.be/@Inhahe/a/113346862968751642
 
 Dependencies:
 - boost_program_options
