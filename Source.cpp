@@ -566,7 +566,7 @@ int parsecommandline(int argc, char* argv[])
   {
     options_description desc{ "\nOptions" };
     desc.add_options()
-      ("help", "This help screen")
+      ("help", "display this help screen")
       ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you got before "
         "(but some of the other options will eliminate all similarity in the pattern if they're any different)")
       ("file", value<string>(),
@@ -942,9 +942,9 @@ int main(int argc, char* argv[])
         if (rotatehue)
         {
           hue += huespeed;
-          if (hue > 360) hue = fmod(hue, 360);
-          else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
+          hue = fmod(hue + 360, 360);
         }
+
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
         drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
           screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);
