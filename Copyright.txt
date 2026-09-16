@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-Scribbles3 is copyright (c) 2024 Richard A. Nichols III (Inhahe) - http://inhahe.com
+Scribbles3 is copyright (c) 2024 Inhahe - http://inhahe.com
 except for the gif-h subdirectory.
 
-=======
-Scribbles3 is copyright (c) 2024 Richard A. Nichols III (Inhahe) - http://inhahe.com
-except for the gif-h subdirectory.
-
->>>>>>> 9792e0eade8cd56cfbfe69617de7648fa5ac747d

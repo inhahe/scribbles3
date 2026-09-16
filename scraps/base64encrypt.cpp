@@ -29,7 +29,7 @@ std::string text1 =
 "                                   if incontiguous is not specified, points are connected by lines across time\n"
 "                                   try 1 along with --discontiguous to get a rapid-fire succession of unique shapes\n";
 
-std::string text2 = "Made by Richard A. Nichols III (Inhahe)\n";
+std::string text2 = "Made by Inhahe\n";
 
 int main()
 {

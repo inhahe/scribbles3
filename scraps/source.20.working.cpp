@@ -464,7 +464,7 @@ int main(int argc, char* argv[])
     srand(seed);
   }
   
-  cout << "Made by Richard A. Nichols III (Inhahe)" << endl;;
+  cout << "Made by Inhahe" << endl;;
 
   if (noloop)
   {

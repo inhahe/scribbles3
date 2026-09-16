@@ -544,7 +544,7 @@ int main(int argc, char* argv[])
   }
 
   std::cout << endl;
-  std::cout << "Made by Richard A. Nichols III (Inhahe)" << endl;
+  std::cout << "Made by Inhahe" << endl;
   
   if (noloop)
   {

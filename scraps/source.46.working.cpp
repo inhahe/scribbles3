@@ -773,7 +773,7 @@ int main(int argc, char* argv[])
   }
   srand(seed);
 
-  cout << "Made by Richard A. Nichols III (Inhahe)" << endl << endl << endl << flush;
+  cout << "Made by Inhahe" << endl << endl << endl << flush;
   COORD fps_cursor_pos = get_cursor();
   COORD percent_cursor_pos = get_cursor();
   fps_cursor_pos.Y = percent_cursor_pos.Y - 1;
