@@ -8,26 +8,13 @@
 #include <iostream>
 #include <gif.h>
 #include <cstring>
-#include <chrono>
-#ifdef _WIN32
-#include <SDL.h>
-#include <windows.h>
-#define sleep(x) Sleep(1000 * (x))
-#elif __linux__
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <termios.h>
-#include <signal.h>
-struct COORD { int X, Y; };
-#endif
-#include <boost/program_options.hpp>
-#include <boost/regex.hpp>
-#define fRAND_MAX static_cast <float> (RAND_MAX) 
 using namespace std;
-using namespace boost::program_options;
-using namespace boost;
-using namespace std::chrono;
+#define w 1000
+#define h 1000
 
 struct rgb
 {
@@ -38,8 +25,6 @@ int spacecurvepoints = 100;
 int timecurvepoints = 100;
 int spacecurves = 30;
 int timecurves = 5;
-int w = 1000;
-int h = 1000;
 rgb bg = { 255, 255, 255 };
 rgb fg = { 0, 0, 255 };
 int seed = -1;
@@ -56,95 +41,6 @@ bool noscreen = false;
 bool running = true;
 int framespan = 50;
 bool enable_vsync = false;
-
-
-void set_cursor(int x = 0, int y = 0)
-{
-#ifdef _WIN32
-  HANDLE handle;
-  COORD coordinates;
-  handle = GetStdHandle(STD_OUTPUT_HANDLE);
-  coordinates.X = x;
-  coordinates.Y = y;
-  SetConsoleCursorPosition(handle, coordinates);
-#elif __linux__
-  cout << "\033[" << y << ";" << x << "H" << flush;
-#endif
-}
-
-void set_yellow_text()
-{
-#ifdef _WIN32
-  HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-  SetConsoleTextAttribute(hConsole, 14);
-#elif __linux__
-  cout << "\x1B[93m";
-#endif
-}
-
-void set_white_text()
-{
-#ifdef _WIN32
-  HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-  SetConsoleTextAttribute(hConsole, 7);
-#elif __linux__
-  cout << "\x1B[0m";
-#endif
-}
-
-COORD get_cursor()
-{
-#ifdef _WIN32
-  CONSOLE_SCREEN_BUFFER_INFO cbsi;
-  if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cbsi))
-  {
-    return cbsi.dwCursorPosition;
-  }
-  else
-  {
-    // The function failed. Call GetLastError() for details.
-    COORD invalid = { 0, 0 };
-    return invalid;
-  }
-#elif __linux__
-  COORD result;
-  char buf[8];
-  char cmd[] = "\033[6n";
-  struct termios save, raw;
-  tcgetattr(0, &save);
-  cfmakeraw(&raw); tcsetattr(0, TCSANOW, &raw);
-  if (isatty(fileno(stdin)))
-  {
-    write(1, cmd, sizeof(cmd));
-    read(0, buf, sizeof(buf));
-
-    /* It doesn't work!!?
-    sscanf(buf,"%d",curline);
-    printf("\n\rCurrent Line: %d\n\r" , curline);
-    */
-
-    smatch sm1;
-    regex_search(string(buf), sm1, regex("\\[(\\d*);(\\d*)R"));
-    result.Y = stoi(sm1[1]);
-    result.X = stoi(sm1[2]);
-  }
-  tcsetattr(0, TCSANOW, &save);
-  return result;
-#endif
-}
-
-void show_console_cursor(const bool show)
-{
-#if defined(_WIN32)
-  static const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-  CONSOLE_CURSOR_INFO cci;
-  GetConsoleCursorInfo(handle, &cci);
-  cci.bVisible = show; // show/hide cursor
-  SetConsoleCursorInfo(handle, &cci);
-#elif defined(__linux__)
-  cout << (show ? "\033[?25h" : "\033[?25l") << flush; // show/hide cursor
-#endif // Windows/Linux
-}
 
 struct point
 {
@@ -559,182 +455,10 @@ rgb HSVtoRGB(float H, float S, float V) {
   return rgb{ R, G, B };
 }
 
-int parsecommandline(int argc, char* argv[])
-{
-  int r = 0;
-  try
-  {
-    options_description desc{ "\nOptions" };
-    desc.add_options()
-      ("help", "display this help screen")
-      ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you got before "
-        "(but some of the other options will eliminate all similarity in the pattern if they're any different)")
-      ("file", value<string>(),
-        "if an output file is specified, --loop will be enabled, and the animation will stop after one loop. "
-        "filename extension should be \"gif\"")
-      ("noscreen", "doesn't display anything. only for use with --file")
-      ("vsync", "don't update the screen faster than the screen refresh rate. this isn't supported on all platforms")
-      ("spacecurves", value<int>(),
-        "number of curves in space. "
-        "increase this to make more complicated shapes. defaults to 30")
-      ("timecurves", value<int>(),
-        "number of curves in time per space curve. only applies when --loop or --file is enabled. "
-        "increase this to make the loops longer. defaults to 5")
-      ("w", value<int>(), "window width. defaults to 1000. I recommend a square aspect ratio; otherwise the graphics are "
-        "kinda skewed")
-      ("h", value<int>(), "window height. defaults to 1000. smaller width and height make the program run faster  ")
-      ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or #000000 if "
-        "--rotatehue is enabled")
-      ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
-      ("rotatehue", "make fgcolor cycle through the hues. overrides --fgcolor")
-      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. floating point. defaults "
-        "to 1. hue cycles from 0 to 360. ignored if --file or --loop is enabled.")
-      ("huemult", value<int>(), "if --loop or --file is enabled and --rotatehue is enabled, --huemult "
-        "specifies how many times to cycle through hues per time loop. defaults to 1")
-      ("saturation", value<float>(), "saturation of colors when using --rotatehue. 1 to 100. "
-        "defaults to 100")
-      ("value", value<float>(), "brightness of colors when using --rotatehue. 1 to 100. "
-        "defaults to 100")
-      ("loop", "loops back on itself in time seamlessly. I recommend using --vsync with --loop; otherwise it'll go "
-        "way too fast")
-      ("incontiguous", "make it so that spacecurves don't move contiguously through time, but skip pixels. "
-        "this will have the effect of making the animation change faster. --incontiguous is automatically "
-        "enabled when --loop or --file is enabled. I recommend using --vsync with --incontiguous; otherwise it'll "
-        "go way too fast")
-      ("spacecurvepoints", value<int>(),
-        "number of points calculated on each bezier curve in space. "
-        "lines are drawn between each point. defaults to 100. "
-        "make this 1 for a jagged effect")
-      ("timecurvepoints", value<int>(),
-        "number of points calculated on each bezier curve of change. "
-        "if --incontiguous is not enabled, points are connected linearly across time. "
-        "try 1 along with --incontiguous to get a rapid-fire succession of completely different shapes");
-
-    variables_map vm;
-    store(parse_command_line(argc, argv, desc), vm);
-    notify(vm);
-
-    if (vm.count("help"))
-    {
-      cout << desc;
-      r = 1;
-    }
-    if (vm.count("seed")) seed = vm["seed"].as<int>();
-    if (vm.count("file"))
-    {
-      filename = vm["file"].as<string>();
-      dowrite = true;
-    }
-    if (vm.count("noscreen")) noscreen = true;
-    if (vm.count("vsync")) enable_vsync = true;
-    if (vm.count("spacecurves")) spacecurves = vm["spacecurves"].as<int>();
-    if (vm.count("timecurves")) timecurves = vm["timecurves"].as<int>();
-    if (vm.count("w")) w = vm["w"].as<int>();
-    if (vm.count("h")) h = vm["h"].as<int>();
-    if (vm.count("fgcolor")) fg = hex2rgb(vm["fgcolor"].as<string>());
-    if (vm.count("loop")) noloop = false;
-    if (vm.count("incontiguous")) contiguous = false;
-    if (vm.count("spacecurvepoints")) spacecurvepoints = vm["spacecurvepoints"].as<int>();
-    if (vm.count("timecurvepoints")) timecurvepoints = vm["timecurvepoints"].as<int>();
-    if (vm.count("rotatehue"))
-    {
-      rotatehue = true;
-      bg = { 0, 0, 0 };
-    }
-    if (vm.count("saturation")) sat = vm["saturation"].as<float>();
-    if (vm.count("value")) val = vm["value"].as<float>();
-    if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
-    if (vm.count("huespeed"))
-    {
-      huespeed = vm["huespeed"].as<float>();
-      huespeed = copysign(fmod(fabs(huespeed), 360), huespeed);
-    }
-    if (vm.count("huemult")) huemult = vm["huemult"].as<int>();
-    if (argc == 1) cout << desc;
-  }
-  catch (const error& ex)
-  {
-    std::cerr << endl;
-    std::cerr << ex.what() << endl;
-    std::cerr << endl;
-    std::cerr << "'" << argv[0] << " --help' for command-line options" << endl;
-    r = 1;
-  }
-  return r;
-}
-
-void display_warning(COORD percent_cursor_pos = COORD{ -1, -1 })
-{
-  show_console_cursor(true);
-  if (percent_cursor_pos.X != -1) set_cursor(percent_cursor_pos.X, percent_cursor_pos.Y);
-  set_yellow_text();
-  cout << endl << endl << "\a";
-  cout << "Warning: Writing to file has been aborted. File is not complete. It will not loop seamlessly." << endl;
-  set_white_text();
-}
-
-GifWriter writer = {};
-
-#ifdef _WIN32
-BOOL WINAPI consoleHandler(DWORD signal) {
-  switch (signal)
-  {
-  case CTRL_C_EVENT:
-  case CTRL_CLOSE_EVENT:
-  case CTRL_BREAK_EVENT:
-  case CTRL_LOGOFF_EVENT:
-  case CTRL_SHUTDOWN_EVENT:
-    if (dowrite)
-    {
-      GifEnd(&writer);
-      display_warning();
-    }
-    else if (signal != CTRL_CLOSE_EVENT)
-    {
-      show_console_cursor(true);
-      cout << endl << endl;
-    }
-    running = false;
-    if (signal == CTRL_CLOSE_EVENT) return TRUE;
-    return FALSE;
-  default:
-    return FALSE;
-  }
-}
-#elif __linux__
-void my_handler(int s) {
-  if (dowrite)
-  {
-    GifEnd(&writer);
-    display_warning();
-    exit(EXIT_FAILURE);
-  }
-  else
-  {
-    show_console_cursor(true);
-    cout << endl << endl; 
-    exit(EXIT_SUCCESS);
-  }
-}
-#endif
-
 int main(int argc, char* argv[])
 {
-#ifdef _WIN32
-  SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
-#elif __linux__
-  struct sigaction sigIntHandler;
-
-  sigIntHandler.sa_handler = my_handler;
-  sigemptyset(&sigIntHandler.sa_mask);
-  sigIntHandler.sa_flags = 0;
-
-  sigaction(SIGINT, &sigIntHandler, NULL);
-#endif
   float hue = 160;
 
-  if (parsecommandline(argc, argv)) return 0;
-  noscreen = noscreen && dowrite;
   enable_vsync = enable_vsync && not noscreen;
   if (dowrite)
   {
@@ -942,9 +666,9 @@ int main(int argc, char* argv[])
         if (rotatehue)
         {
           hue += huespeed;
-          hue = fmod(hue + 360, 360);
+          if (hue > 360) hue = fmod(hue, 360);
+          else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
-
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
         drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
           screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);

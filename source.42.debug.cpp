@@ -1,11 +1,9 @@
-//todo: add error checks for SDL_PollEvent, SDL_DestroyWindow, SDL_DestroyRenderer, SDL_Quit
-//todo: sometimes the program runs with fps being a lot slower for no apparent reason
-//todo: update SDL2
-//why do gifs sometimes have defects when they're aborted? they shouldn't.
-//todo: sometimes when it ends it prints two newlines after fps, sometimes 1
+//todo: on linux the percentage erases after it's finished for some reason
+//todo: add more error checks
 #include <vector>
 #include <cstdint>
 #include <iostream>
+#include <fstream> //debug
 #include <gif.h>
 #include <cstring>
 #include <chrono>
@@ -23,7 +21,6 @@ struct COORD { int X, Y; };
 #endif
 #include <boost/program_options.hpp>
 #include <boost/regex.hpp>
-#define fRAND_MAX static_cast <float> (RAND_MAX) 
 using namespace std;
 using namespace boost::program_options;
 using namespace boost;
@@ -57,7 +54,6 @@ bool running = true;
 int framespan = 50;
 bool enable_vsync = false;
 
-
 void set_cursor(int x = 0, int y = 0)
 {
 #ifdef _WIN32
@@ -66,7 +62,11 @@ void set_cursor(int x = 0, int y = 0)
   handle = GetStdHandle(STD_OUTPUT_HANDLE);
   coordinates.X = x;
   coordinates.Y = y;
-  SetConsoleCursorPosition(handle, coordinates);
+  ofstream outfile;
+  outfile.open("debug.txt", ios_base::app); //debug
+  outfile << SetConsoleCursorPosition(handle, coordinates) << endl << GetLastError << endl; //debug
+  outfile.close();
+
 #elif __linux__
   cout << "\033[" << y << ";" << x << "H" << flush;
 #endif
@@ -138,9 +138,13 @@ void show_console_cursor(const bool show)
 #if defined(_WIN32)
   static const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
   CONSOLE_CURSOR_INFO cci;
-  GetConsoleCursorInfo(handle, &cci);
+  ofstream outfile;
+  outfile.open("debug.txt", ios_base::app); //debug
+  outfile << GetConsoleCursorInfo(handle, &cci) << endl << GetLastError << endl; //debug
   cci.bVisible = show; // show/hide cursor
-  SetConsoleCursorInfo(handle, &cci);
+  outfile << SetConsoleCursorInfo(handle, &cci) << endl << GetLastError << endl; //debug
+  outfile.close(); //debug
+
 #elif defined(__linux__)
   cout << (show ? "\033[?25h" : "\033[?25l") << flush; // show/hide cursor
 #endif // Windows/Linux
@@ -244,15 +248,15 @@ vector<point> plotline(point p1, point p2)
 
 class metapoints
 {
-  curve c1 = curve();
-  curve c2 = curve();
+  curve c1;
+  curve c2;
   vector<point> curvepoints2;
   vector<point> curvepoints;
   int pointindex = 0;
-  int cpsize = 0;
-  point lastpoint = point();
-  int pointspercurve = 0;
-  bool contiguous = false;
+  int cpsize;
+  point lastpoint;
+  int pointspercurve;
+  bool contiguous;
 public:
   metapoints()
   {
@@ -260,13 +264,12 @@ public:
   metapoints(const int w, const int h, int pointspercurve, bool contiguous)
   {
     this->contiguous = contiguous;
-    //method 1
-    this->c1.p1.x = (rand()) / (fRAND_MAX / w);
-    this->c1.p1.y = (rand()) / (fRAND_MAX / h);
-    this->c1.p2.x = (rand()) / (fRAND_MAX / w);
-    this->c1.p2.y = (rand()) / (fRAND_MAX / h);
-    this->c1.p3.x = (rand()) / (fRAND_MAX / w);
-    this->c1.p3.y = (rand()) / (fRAND_MAX / h);
+    this->c1.p1.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+    this->c1.p1.y = (rand()) / (static_cast <float> (RAND_MAX / h));
+    this->c1.p2.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+    this->c1.p2.y = (rand()) / (static_cast <float> (RAND_MAX / h));
+    this->c1.p3.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+    this->c1.p3.y = (rand()) / (static_cast <float> (RAND_MAX / h));
     this->c2.p1.x = (this->c1.p2.x + this->c1.p1.x) / 2;
     this->c2.p1.y = (this->c1.p2.y + this->c1.p1.y) / 2;
     this->c2.p2 = this->c1.p2;
@@ -304,8 +307,8 @@ public:
       vector<point>().swap(this->curvepoints2);
       this->c1.p1 = this->c1.p2;
       this->c1.p2 = this->c1.p3;
-      this->c1.p3.x = (rand()) / (fRAND_MAX / w);
-      this->c1.p3.y = (rand()) / (fRAND_MAX / h);
+      this->c1.p3.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+      this->c1.p3.y = (rand()) / (static_cast <float> (RAND_MAX / h));
       this->c2.p1.x = (this->c1.p2.x + this->c1.p1.x) / 2;
       this->c2.p1.y = (this->c1.p2.y + this->c1.p1.y) / 2;
       this->c2.p2 = this->c1.p2;
@@ -326,12 +329,12 @@ public:
         this->lastpoint = curvepoints.back();
         vector<point>().swap(curvepoints);
         this->cpsize = this->curvepoints2.size();
-        return this->curvepoints2[this->pointindex++];
+        return this->curvepoints2[this->pointindex];
       }
       else
       {
         this->cpsize = this->curvepoints.size();
-        return this->curvepoints[this->pointindex++];
+        return this->curvepoints[this->pointindex];
       }
     }
     else
@@ -352,8 +355,8 @@ vector<point> randanchors(int w, int h, int numpoints)
   for (int i = 0; i < numpoints; i++)
   {
     point p;
-    p.x = int(rand() / (fRAND_MAX / w));
-    p.y = int(rand() / (fRAND_MAX / h));
+    p.x = int(rand() / (static_cast <float> (RAND_MAX / w)));
+    p.y = int(rand() / (static_cast <float> (RAND_MAX / h)));
     anchors.push_back(p);
   }
   return anchors;
@@ -415,17 +418,11 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   bool* sp_screen = nullptr;
   uint8_t* sp_pixels = nullptr;
   int pitch;
-  Uint32 fgint_screen = 0;
-  Uint32 bgint_screen = 0;
-  if (not noscreen)
-  {
-    bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
-    fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
-  }
+  Uint32 bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
+  Uint32 fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
   Uint32 bgint_image = bg.r + (bg.g << 8) + (bg.b << 16) + 0xff000000;
   Uint32 fgint_image = fg.r + (fg.g << 8) + (fg.b << 16) + 0xff000000;
   uint8_t* sp_image = image;
-  SDL_Texture* texture;
   for (int i = 0; i < s * 2; i++)
   {
     point p = disppoints[i % s];
@@ -447,14 +444,7 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   {
     pixels = (uint8_t*)(surface->pixels);
     pitch = surface->pitch;
-    if (SDL_MUSTLOCK(surface))
-    {
-      if (SDL_LockSurface(surface) < 0)
-      {
-        cout << endl << "SDL_LockSurface(surface): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
-      }
-    }
+    if (SDL_MUSTLOCK(surface)) SDL_LockSurface(surface);
   }
   sp_screen = screen;
   sp_image = image;
@@ -489,34 +479,14 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   if (not noscreen)
   {
     if (SDL_MUSTLOCK(surface)) SDL_UnlockSurface(surface);
-    if (enable_vsync) 
+    if (enable_vsync)
     {
-      texture = SDL_CreateTextureFromSurface(renderer, surface);
-      if (texture == NULL)
-      {
-        cout << endl << "SDL_CreateTextureFromSurface(renderer, surface), NULL, NULL): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
-      }
-      if (SDL_RenderCopy(renderer, texture, NULL, NULL) < 0)
-      {
-        cout << endl << "SDL_RenderCopy(renderer, texture, NULL, NULL) < 0): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
-      }
+      SDL_RenderCopy(renderer, SDL_CreateTextureFromSurface(renderer, surface), NULL, NULL);
       SDL_RenderPresent(renderer);
-      if (SDL_RenderClear(renderer) < 0)  //"You are strongly encouraged to call SDL_RenderClear() to initialize the backbuffer 
-      {                                   //before starting each new frame's drawing, even if you plan to overwrite every pixel." 
-        cout << endl << "(SDL_RenderClear(renderer): " << SDL_GetError() << endl;   //- https://wiki.libsdl.org/SDL2/SDL_RenderPresent
-        exit(EXIT_FAILURE);
-      }
-      SDL_DestroyTexture(texture); //dunno why we can't just make texture once in main and use it over and over? 
-    }                              //screen is black when I do that
+    }
     else
     {
-      if (SDL_UpdateWindowSurface(window) < 0)
-      {
-        cout << endl << "SDL_UpdateWindowSurface(window): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
-      }
+      SDL_UpdateWindowSurface(window);
     }
   }
   if (dowrite)
@@ -529,14 +499,11 @@ rgb hex2rgb(string s)
 {
   rgb rgb2;
   smatch sm;
-  if (not (regex_match(s, sm, regex("[#]?(\\w{2})(\\w{2})(\\w{2})"))))
-  {
-    cout << "Invalid color specification: " << s << endl;
-    exit(EXIT_FAILURE);
-  }
+  regex_match(s, sm, regex("[#]?(\\w{2})(\\w{2})(\\w{2})"));
+
   rgb2.r = stoi(sm[1], nullptr, 16);
-  rgb2.g = stoi(sm[2], nullptr, 16);
-  rgb2.b = stoi(sm[3], nullptr, 16);
+  rgb2.b = stoi(sm[2], nullptr, 16);
+  rgb2.g = stoi(sm[3], nullptr, 16);
   return rgb2;
 }
 
@@ -566,7 +533,7 @@ int parsecommandline(int argc, char* argv[])
   {
     options_description desc{ "\nOptions" };
     desc.add_options()
-      ("help", "display this help screen")
+      ("help", "This help screen")
       ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you got before "
         "(but some of the other options will eliminate all similarity in the pattern if they're any different)")
       ("file", value<string>(),
@@ -582,13 +549,13 @@ int parsecommandline(int argc, char* argv[])
         "increase this to make the loops longer. defaults to 5")
       ("w", value<int>(), "window width. defaults to 1000. I recommend a square aspect ratio; otherwise the graphics are "
         "kinda skewed")
-      ("h", value<int>(), "window height. defaults to 1000. smaller width and height make the program run faster  ")
-      ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or #000000 if "
-        "--rotatehue is enabled")
+      ("h", value<int>(), "window height. defaults to 1000. smaller width and height make the program run faster")
+      ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or "
+        "#000000 if --rotatehue is enabled")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
       ("rotatehue", "make fgcolor cycle through the hues. overrides --fgcolor")
-      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. floating point. defaults "
-        "to 1. hue cycles from 0 to 360. ignored if --file or --loop is enabled.")
+      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. "
+        "ignored if --file or --loop is enabled. defaults to 1. hue cycles from 0 to 360")
       ("huemult", value<int>(), "if --loop or --file is enabled and --rotatehue is enabled, --huemult "
         "specifies how many times to cycle through hues per time loop. defaults to 1")
       ("saturation", value<float>(), "saturation of colors when using --rotatehue. 1 to 100. "
@@ -599,8 +566,7 @@ int parsecommandline(int argc, char* argv[])
         "way too fast")
       ("incontiguous", "make it so that spacecurves don't move contiguously through time, but skip pixels. "
         "this will have the effect of making the animation change faster. --incontiguous is automatically "
-        "enabled when --loop or --file is enabled. I recommend using --vsync with --incontiguous; otherwise it'll "
-        "go way too fast")
+        "enabled when --loop or --file is enabled")
       ("spacecurvepoints", value<int>(),
         "number of points calculated on each bezier curve in space. "
         "lines are drawn between each point. defaults to 100. "
@@ -644,11 +610,7 @@ int parsecommandline(int argc, char* argv[])
     if (vm.count("saturation")) sat = vm["saturation"].as<float>();
     if (vm.count("value")) val = vm["value"].as<float>();
     if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
-    if (vm.count("huespeed"))
-    {
-      huespeed = vm["huespeed"].as<float>();
-      huespeed = copysign(fmod(fabs(huespeed), 360), huespeed);
-    }
+    if (vm.count("huespeed")) huespeed = vm["huespeed"].as<float>();
     if (vm.count("huemult")) huemult = vm["huemult"].as<int>();
     if (argc == 1) cout << desc;
   }
@@ -677,43 +639,49 @@ GifWriter writer = {};
 
 #ifdef _WIN32
 BOOL WINAPI consoleHandler(DWORD signal) {
-  switch (signal)
+  if (signal == CTRL_C_EVENT)
   {
-  case CTRL_C_EVENT:
-  case CTRL_CLOSE_EVENT:
-  case CTRL_BREAK_EVENT:
-  case CTRL_LOGOFF_EVENT:
-  case CTRL_SHUTDOWN_EVENT:
     if (dowrite)
     {
       GifEnd(&writer);
       display_warning();
+      running = false;
     }
-    else if (signal != CTRL_CLOSE_EVENT)
+    else
     {
       show_console_cursor(true);
-      cout << endl << endl;
+      cout << endl;
     }
-    running = false;
-    if (signal == CTRL_CLOSE_EVENT) return TRUE;
-    return FALSE;
-  default:
-    return FALSE;
   }
+  return not running; //wait wtf?
 }
 #elif __linux__
-void my_handler(int s) {
+//void sigint(int a)
+//{
+//  if (dowrite)
+//  {
+//    GifEnd(&writer);
+//    display_warning();
+//    running = false;
+//  }
+//  else
+//  {
+//    show_console_cursor(true);
+//    cout << endl << endl << flush; //why doesn't this work?
+//  }
+//}
+void termination_handler(int signum)
+{
   if (dowrite)
   {
     GifEnd(&writer);
     display_warning();
-    exit(EXIT_FAILURE);
+    running = false;
   }
   else
   {
     show_console_cursor(true);
-    cout << endl << endl; 
-    exit(EXIT_SUCCESS);
+    cout << endl << endl << flush; //why doesn't this work?
   }
 }
 #endif
@@ -722,28 +690,15 @@ int main(int argc, char* argv[])
 {
 #ifdef _WIN32
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
-#elif __linux__
-  struct sigaction sigIntHandler;
-
-  sigIntHandler.sa_handler = my_handler;
-  sigemptyset(&sigIntHandler.sa_mask);
-  sigIntHandler.sa_flags = 0;
-
-  sigaction(SIGINT, &sigIntHandler, NULL);
 #endif
   float hue = 160;
 
   if (parsecommandline(argc, argv)) return 0;
   noscreen = noscreen && dowrite;
-  enable_vsync = enable_vsync && not noscreen;
   if (dowrite)
   {
     contiguous = false;
     noloop = false;
-  }
-  if ((not enable_vsync) && ((not noloop) or not contiguous) && not dowrite)
-  {
-    cout << endl << "Using --vsync is recommended when using --loop or --incontiguous; otherwise it'll probably run too fast." << endl;
   }
 
   bool* screen = new bool[w * h];
@@ -752,7 +707,6 @@ int main(int argc, char* argv[])
   SDL_Renderer* renderer = nullptr;
   SDL_Window* window = nullptr;
   SDL_Surface* surface = nullptr;
-  SDL_Texture* texture = nullptr;
   SDL_PixelFormat* pixel_format_surface = nullptr;
   SDL_Event event;
   vector<point> dispanchors;
@@ -784,46 +738,18 @@ int main(int argc, char* argv[])
   show_console_cursor(false);
   if (not noscreen)
   {
-    if (SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "1", SDL_HINT_OVERRIDE) != SDL_TRUE) cout << "Could not set vsync. It may not be available on your platform." << endl;
-    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
-    {
-      cout << "SDL_Init(SDL_INIT_EVERYTHING): " << SDL_GetError() << endl;
-      exit(EXIT_FAILURE);
-    }
+    SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "1", SDL_HINT_OVERRIDE); //why doesn't this work?
+    SDL_Init(SDL_INIT_EVERYTHING);
     window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI);
-    if (window == NULL)
-    {
-      cout << "SDL_CreateWindow(\"scribbles\", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI): " << SDL_GetError() << endl;
-      exit(EXIT_FAILURE);
-    }
     if (enable_vsync)
     {
       surface = SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0);
-      if (surface == NULL)
-      {
-        cout << "SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
-      }
       renderer = SDL_CreateRenderer(window, -1, 0);
-      if (renderer == NULL)
-      {
-        cout << "SDL_CreateRenderer(window, -1, 0): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
-      }
-      if (SDL_RenderClear(renderer) < 0)  //"You are strongly encouraged to call SDL_RenderClear() to initialize the backbuffer 
-      {                                   //before starting each new frame's drawing, even if you plan to overwrite every pixel." 
-        cout << "(SDL_RenderClear(renderer): " << SDL_GetError() << endl;   //- https://wiki.libsdl.org/SDL2/SDL_RenderPresent
-        exit(EXIT_FAILURE);
-      }
+      SDL_RenderClear(renderer);
     }
     else
     {
       surface = SDL_GetWindowSurface(window);
-      if (surface == NULL)
-      {
-        cout << "SDL_GetWindowSurface(window): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
-      }
     }
     pixel_format_surface = surface->format;
   }
@@ -863,7 +789,9 @@ int main(int argc, char* argv[])
       if (rotatehue)
       {
         hue += huespeed;
-        hue = fmod(hue + 360, 360);
+        if (hue > 360) hue = fmod(hue, 360);
+        else if (hue < 0) hue += int(abs(hue) / 360) * 360 + 360;
+        //why the hell doesn't hue -= (int(hue) / 360) * 360 + 360; work?
       }
       vector<point>().swap(dispanchors);
       if (not noscreen)
@@ -875,7 +803,7 @@ int main(int argc, char* argv[])
           SDL_DestroyWindow(window);
           SDL_DestroyRenderer(renderer);
           SDL_Quit();
-          cout << endl << endl;
+          cout << endl;
           return 0;
         }
       }
@@ -903,12 +831,9 @@ int main(int argc, char* argv[])
       {
         if (not running)
         {
-          if (not noscreen)
-          {
-            SDL_DestroyWindow(window);
-            SDL_DestroyRenderer(renderer);
-            SDL_Quit();
-          }
+          SDL_DestroyWindow(window);
+          SDL_DestroyRenderer(renderer);
+          SDL_Quit();
           display_warning(percent_cursor_pos);
           return  0;
         }
@@ -942,9 +867,9 @@ int main(int argc, char* argv[])
         if (rotatehue)
         {
           hue += huespeed;
-          hue = fmod(hue + 360, 360);
+          if (hue > 360) hue = fmod(hue, 360);
+          else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
-
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
         drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
           screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);
@@ -960,7 +885,6 @@ int main(int argc, char* argv[])
             SDL_Quit();
             //delete [] screen;
             //delete [] timepercanchors;
-            cout << endl << endl;
             show_console_cursor(true);
             if (dowrite)
             {
@@ -974,8 +898,8 @@ int main(int argc, char* argv[])
       if (dowrite) 
       {
         set_cursor(percent_cursor_pos.X, percent_cursor_pos.Y);
-        cout << "100% done" << endl << flush; 
-        show_console_cursor(true); 
+        cout << "100% done" << endl << flush; //doesn't work for some reason when --file and --noscreen are enabled. 
+        show_console_cursor(true); //doesn't work for some reason when --file and --noscreen are enabled. i don't think this code is being run at all in that case. it works on Linux.
         GifEnd(&writer);
         if (not noscreen)
         {

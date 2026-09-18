@@ -1,0 +1,28 @@
+<html>
+<body>
+  <canvas id="canvas" width="1000" height="1000" oncontextmenu="event.preventDefault()"></canvas>
+  <script>
+    ctx = document.getElementById('canvas').getContext('2d');
+    imagedata = ctx.createImageData(1000, 1000);
+
+    WebAssembly.instantiateStreaming(fetch("wasm-sdl.wasm"), {}).then((wa_object) =>
+    {
+      const waexports = wa_object.instance.exports;
+      const sharedArrayOffset = waexports.pixels.valueOf();
+      mainloop();
+    })
+
+    function mainLoop()
+    {
+      waexports.mainloop().then(() =>
+      {
+        for (var i = 0; i < w * h * 4; i++) imagadata[i] = buffer[sharedArrayOffset + i];
+        ctx.putImageData(imagadata, 0, 0);
+      })
+      requestAnimationFrame(mainLoop);
+    }
+  </script>
+
+  <script async type="text/javascript" src="wasm-sdl.js"></script>
+</body>
+</html>

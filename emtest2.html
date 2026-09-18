@@ -1,0 +1,17 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+      <meta charset="utf-8" />
+      <title></title>
+  </head>
+  <body>
+    <canvas id="canvas" width="1000" height="1000" oncontextmenu="event.preventDefault()"></canvas>
+    <script>
+      canvas = document.getElementById("canvas");
+      ctx = canvas.getContext("2d");
+      ctxfillStyle = "blue";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    </script>       
+  </body>
+</html>

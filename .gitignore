@@ -1,0 +1,18 @@
+
+# Local-only. We publish straight from this directory now instead of copying
+# a filtered subset into D:\github, so these are excluded here instead.
+x64/
+.vs/
+b/
+scribbles3/
+base64encrypt/
+snake/
+twitter/
+youtube/
+.claude/
+*.gif
+*.obj
+*.ilk
+*.pdb
+todo*.txt
+go.bat

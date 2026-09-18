@@ -2,7 +2,6 @@
 //todo: sometimes the program runs with fps being a lot slower for no apparent reason
 //todo: update SDL2
 //why do gifs sometimes have defects when they're aborted? they shouldn't.
-//todo: sometimes when it ends it prints two newlines after fps, sometimes 1
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -566,7 +565,7 @@ int parsecommandline(int argc, char* argv[])
   {
     options_description desc{ "\nOptions" };
     desc.add_options()
-      ("help", "display this help screen")
+      ("help", "This help screen")
       ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you got before "
         "(but some of the other options will eliminate all similarity in the pattern if they're any different)")
       ("file", value<string>(),
@@ -587,8 +586,8 @@ int parsecommandline(int argc, char* argv[])
         "--rotatehue is enabled")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
       ("rotatehue", "make fgcolor cycle through the hues. overrides --fgcolor")
-      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. floating point. defaults "
-        "to 1. hue cycles from 0 to 360. ignored if --file or --loop is enabled.")
+      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. "
+        "ignored if --file or --loop is enabled. defaults to 1. hue cycles from 0 to 360")
       ("huemult", value<int>(), "if --loop or --file is enabled and --rotatehue is enabled, --huemult "
         "specifies how many times to cycle through hues per time loop. defaults to 1")
       ("saturation", value<float>(), "saturation of colors when using --rotatehue. 1 to 100. "
@@ -644,11 +643,7 @@ int parsecommandline(int argc, char* argv[])
     if (vm.count("saturation")) sat = vm["saturation"].as<float>();
     if (vm.count("value")) val = vm["value"].as<float>();
     if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
-    if (vm.count("huespeed"))
-    {
-      huespeed = vm["huespeed"].as<float>();
-      huespeed = copysign(fmod(fabs(huespeed), 360), huespeed);
-    }
+    if (vm.count("huespeed")) huespeed = vm["huespeed"].as<float>();
     if (vm.count("huemult")) huemult = vm["huemult"].as<int>();
     if (argc == 1) cout << desc;
   }
@@ -863,7 +858,9 @@ int main(int argc, char* argv[])
       if (rotatehue)
       {
         hue += huespeed;
-        hue = fmod(hue + 360, 360);
+        if (hue > 360) hue = fmod(hue, 360);
+        else if (hue < 0) hue += int(abs(hue) / 360) * 360 + 360;
+        //why the hell doesn't hue -= (int(hue) / 360) * 360 + 360; work?
       }
       vector<point>().swap(dispanchors);
       if (not noscreen)
@@ -942,9 +939,9 @@ int main(int argc, char* argv[])
         if (rotatehue)
         {
           hue += huespeed;
-          hue = fmod(hue + 360, 360);
+          if (hue > 360) hue = fmod(hue, 360);
+          else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
-
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
         drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
           screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);

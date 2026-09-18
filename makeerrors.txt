@@ -1,0 +1,15 @@
+Source.cpp:14:10: fatal error: SDL2/SDL.h: No such file or directory
+   14 | #include <SDL2/SDL.h>
+      |          ^~~~~~~~~~~~
+compilation terminated.
+make: *** [makefile:2: run] Error 1
+-----
+sudo apt-get install libsdl2-dev 
+-----
+Source.cpp:21:10: fatal error: boost/program_options.hpp: No such file or directory
+   21 | #include <boost/program_options.hpp>
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+make: *** [makefile:2: run] Error 1
+-----
+sudo apt-get install libboost-all-dev

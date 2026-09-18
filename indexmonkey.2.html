@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style>
+      .container {
+        display: flex;
+        justify-content: center; /* Centers the first div */
+        align-items: center; /* Aligns items vertically */
+        position: relative;
+        height: 100vh; /* Full viewport height */
+      }
+
+      .center-div {
+        background-color: lightblue;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .right-div {
+        background-color: lightcoral;
+        padding: 20px;
+        margin-left: 10px; /* Space between the two divs */
+        background-color: white;
+      }
+      label {
+        text-align: right;
+        display: block; /* Ensures alignment applies in block-level context */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Create the canvas that the C++ code will draw into -->
+      <div class="center-div">
+        <canvas id="canvas" width="1000" height="1000" oncontextmenu="event.preventDefault()"></canvas>
+      </div>
+      <div class="right-div">
+        <table>
+          <tr>
+            <td><label>Number of curves:</label></td>
+            <td><input type="text" id="numcurves" value="30" size="3" /></td>
+          </tr>
+          <tr>
+            <td><label>Background color:</label></td>
+            <td><input type="text" id="bgcolor" value="#FFFFFF" size="7" /></td>
+          </tr>
+          <tr>
+            <td><label id="lblfgcolor">Foregound color:</label></td>
+            <td><input type="text" id="txtfgcolor" value="#0000FF" size="7" /></td>
+          </tr>
+          <tr>
+            <td><label>Rotate hue:</label></td>
+            <td><input type="checkbox" id="rotatehue" onchange="changerotatehue()" /></td>
+          </tr>
+          <tr>
+            <td><label style="color: #888888" id="lblhuespeed">Speed of hue rotation:</label></td>
+            <td><input type="text" id="txthuespeed" value="1" size="3" style="color: #888888; border: 1px solid #888888" /></td>
+          </tr>
+          <tr>
+            <td><label style="color: #888888" id="lblhuesat">Saturation of rotating hue (1-100):</label></td>
+            <td><input type="text" id="txthuesat" value="100" size="3" style="color: #888888; border: 1px solid #888888" /></td>
+          </tr>
+          <tr>
+            <td><label style="color: #888888" id="lblhueval">Brightness of rotating hue (1-100):</label></td>
+            <td><input type="text" id="txthueval" value="100" size="3" style="color: #888888; border: 1px solid #888888" /></td>
+          </tr>
+          <tr>
+            <td><label>Contiguous over time:</label></td>
+            <td><input type="checkbox" id="contiguous" checked /></td>
+          </tr>
+          <tr>
+            <td><label>Number of points per curve in space:</label></td>
+            <td><input type="text" id="spacepoints" value="100" size="3" /></td>
+          </tr>
+          <tr>
+            <td><label>Number of points per curve in time:</label></td>
+            <td><input type="text" id="timepoints" value="100" size="3" /></td>
+          </tr>
+          <tr>
+            <td />
+            <td><button onclick="change()">Change</button></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      ctx = document.getElementById('canvas').getContext('2d');
+      imagedata = ctx.createImageData(1000, 1000);
+
+/*
+      let wasmInstance;
+
+      async function loadWasm()
+      {
+        const response = await fetch('wasm-wasi.wasm');
+        const bytes = await response.arrayBuffer();
+        const { instance } = await WebAssembly.instantiate(bytes, {});
+        const memoryBuffer = new Uint8Array(instance.exports.memory.buffer);
+      }
+
+
+ */
+
+/*
+      let wasmInstance;
+
+      async function loadWasm()
+      {
+        const response = await fetch('wasm-wasi.wasm');
+        const bytes = await response.arrayBuffer();
+        const { instance } = await WebAssembly.instantiate(bytes, {
+          env: {
+            // Provide imports if required by your WASM module
+            memory: new WebAssembly.Memory({ initial: 1 }), // Example
+          },
+        });
+        wasmInstance = instance;
+      }
+      */
+
+
+      function make_environment(env)
+      {
+        return new Proxy(env, {
+          get(target, prop, receiver)
+          {
+            if (env[prop] !== undefined)
+            {
+              return env[prop].bind(env);
+            }
+            return (...args) =>
+            {
+              throw new Error(`NOT IMPLEMENTED: ${prop} ${args}`);
+            }
+          }
+        });
+      }
+
+      /*WebAssembly.instantiateStreaming(fetch("wasm-wasi.wasm"), {}).then((wa_object) =>
+      {
+        const waexports = wa_object.instance.exports;
+        const sharedArrayOffset = waexports.pixels.valueOf();
+        mainloop();
+      })
+      */
+
+     /*
+      this.wasm = await WebAssembly.instantiateStreaming(fetch("wasm-wasi.wasm"), {
+        env: make_environment(this)
+      });
+      */
+
+/*    function make_environment(env)
+      {
+        return new Proxy(env, {
+          get(target, prop, receiver)
+          {
+            if (env[prop] !== undefined)
+            {
+              return env[prop].bind(env);
+            }
+            return (...args) =>
+            {
+              throw new Error(`NOT IMPLEMENTED: ${prop} ${args}`);
+            }
+          }
+        });
+      }
+      */
+
+      function make_environment(...envs)
+      {
+        return new Proxy(envs, {
+          get(target, prop, receiver)
+          {
+            for (let env of envs)
+            {
+              if (env.hasOwnProperty(prop))
+              {
+                return env[prop];
+              }
+            }
+            return (...args) => { console.error("NOT IMPLEMENTED: " + prop, args) }
+          }
+        });
+      }
+
+      /*
+      async function loadWasm(wasmPath)
+      {
+        try
+        {
+          var o = Object();
+          wasm = await WebAssembly.instantiateStreaming(fetch(wasmPath),
+          {
+            env: make_environment
+            (
+              {
+                InitWindow: (width, height, title_ptr) =>
+                {
+                  ctx.canvas.width = width;
+                  ctx.canvas.height = height;
+                  const buffer = wasm.instance.exports.memory.buffer;
+                  document.title = cstr_by_ptr(buffer, title_ptr);
+                },
+              }
+            )
+          }
+        } catch (error)
+        {
+          console.error('Error loading WASM module:', error);
+        }
+      }
+      */
+
+      WebAssembly.instantiateStreaming(fetch('wasm-wasi.wasm'), {
+        env: make_environment({
+          InitWindow: (width, height, title_ptr) =>
+          {
+            ctx.canvas.width = width;
+            ctx.canvas.height = height;
+            const buffer = wasm.instance.exports.memory.buffer;
+            document.title = cstr_by_ptr(buffer, title_ptr);
+          },
+          wasi_snapshot_preview1: () => { },
+        /*  SetTargetFPS: (fps) =>
+          {
+            console.log(`The game wants to run at ${fps} FPS, but in Web we gonna just ignore it.`);
+          },
+          GetScreenWidth: () =>
+          {
+            return ctx.canvas.width;
+          },
+          GetScreenHeight: () =>
+          {
+            return ctx.canvas.height;
+          },
+          GetFrameTime: () =>
+          {
+            return dt;
+          },
+          BeginDrawing: () => { },
+          EndDrawing: () => { },
+          DrawCircleV: (center_ptr, radius, color_ptr) =>
+          {
+            const buffer = wasm.instance.exports.memory.buffer;
+            const [x, y] = new Float32Array(buffer, center_ptr, 2);
+            const [r, g, b, a] = new Uint8Array(buffer, color_ptr, 4);
+            const color = color_hex_unpacked(r, g, b, a);
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+            ctx.fillStyle = color;
+            ctx.fill();
+          },
+          ClearBackground: (color_ptr) =>
+          {
+            const buffer = wasm.instance.exports.memory.buffer;
+            const [r, g, b, a] = new Uint8Array(buffer, color_ptr, 4);
+            ctx.fillStyle = color_hex_unpacked(r, g, b, a);
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+          },*/
+        })
+      })
+      const wasmPath = 'wasm-wasi.wasm';
+      //loadWasm(wasmPath)
+
+/*      (async () => {
+        const { instance } = await WebAssembly.instantiateStreaming(
+          fetch("wasm-wasi.wasm"),
+          );
+        }) ();
+        */
+
+      // Usage
+
+/*
+      const imports = {
+        "wasi_snapshot_preview1": {
+          environ_sizes_get() { return 0; },
+          environ_get() { return 0; },
+          proc_exit() { return 0; },
+          fd_write() { return 0; },
+        }
+      }
+*/
+      function mainLoop()
+      {
+//        if (wasmInstance)
+  //      {
+          // Call the exported main_loop function
+          waexports.mainloop().then(() =>
+          {
+            for (var i = 0; i < w * h * 4; i++) imagadata[i] = buffer[sharedArrayOffset + i];
+            ctx.putImageData(imagadata, 0, 0);
+          })
+    //    }
+        requestAnimationFrame(mainLoop);
+      }
+
+      
+    </script>
+
+    
+
+    <script>
+      function changerotatehue()
+      {
+        if (document.getElementById("rotatehue").checked)
+        {
+          element = document.getElementById("txtfgcolor");
+          element.style.color = "#888888";
+          element.style.border = "1px solid #888888";
+          document.getElementById("lblfgcolor").style.color = "#888888";
+
+          element = document.getElementById("txthuespeed");
+          element.style.color = "#000000";
+          element.style.border = "1px solid #000000";
+          document.getElementById("lblhuespeed").style.color = "#000000";
+          element = document.getElementById("txthuesat");
+          element.style.color = "#000000";
+          element.style.border = "1px solid #000000";
+          document.getElementById("lblhuesat").style.color = "#000000";
+          element = document.getElementById("txthueval");
+          element.style.color = "#000000";
+          element.style.border = "1px solid #000000";
+          document.getElementById("lblhueval").style.color = "#000000";
+        }
+        else
+        {
+          element = document.getElementById("txtfgcolor");
+          element.style.color = "#000000";
+          element.style.border = "1px solid #000000";
+          document.getElementById("lblfgcolor").style.color = "#000000";
+
+          element = document.getElementById("txthuespeed");
+          element.style.color = "#888888";
+          element.style.border = "1px solid #888888";
+          document.getElementById("lblhuespeed").style.color = "#888888";
+          element = document.getElementById("txthuesat");
+          element.style.color = "#888888";
+          element.style.border = "1px solid #888888";
+          document.getElementById("lblhuesat").style.color = "#888888";
+          element = document.getElementById("txthueval");
+          element.style.color = "#888888";
+          element.style.border = "1px solid #888888";
+          document.getElementById("lblhueval").style.color = "#888888";
+        }
+      }
+    </script>
+    <script>
+      function change()
+      {
+        matchobj = document.getElementById("bgcolor").value.match("[#]?(\\w{2})(\\w{2})(\\w{2})");
+        if (matchobj.length != 4)
+        {
+          document.getElementById("bgcolor").style.color = "FF0000";
+        }
+        else
+        {
+          document.getElementById("bgcolor").style.color = "000000";
+        }
+        console.log(matchobj[0]);
+        console.log(matchobj[1]);
+        console.log(matchobj[2]);
+        console.log(matchobj[3]);
+
+
+        //var result = module.ccall('update',
+        //  'boolean',
+        //  ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'boolean', 'number', 'number', 'number', 'boolean', 'number', 'number'],
+        //  [
+        //);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+CC:= gcc
+SOURCES:= $(wildcard *.cpp)
+OBJECTS:= $(SOURCES:.cpp=.o)
+
+CFLAGS:= -c -Wall -O2 -lSDL2 -Igif-h -I/usr/include/SDL2
+LDLIBS:= -lSDL2 
+
+make:
+	$(CC) $(LDLIBS) -o $@ $^
+
+	$(CC) $(CFLAGS) -o $@ $<
+
+.PHONY: clean
+clean:
+	-rm $(OBJECTS)
+

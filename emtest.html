@@ -1,0 +1,32 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+      <meta charset="utf-8" />
+      <title></title>
+  </head>
+  <body>
+    <canvas id="canvas" width="1000" height="1000" oncontextmenu="event.preventDefault()"></canvas>
+
+    <script type='text/javascript'>
+      var Module =
+      {
+        canvas: (function () { return document.getElementById('canvas'); })()
+      };
+    </script>
+    <script>
+      Module.onRuntimeInitialized = () =>
+      {
+        var ptr = Module.ccall('getptr', 'number', [], []);
+        var data = HEAPU8.subarray(ptr, ptr + 16);
+        console.log(data.length);
+        console.log(...data);
+        var data2 = data;
+        console.log(data2[10]);
+      };
+    </script>
+
+    <script async type="text/javascript" src="emtest.js"></script>
+
+  </body>
+</html>

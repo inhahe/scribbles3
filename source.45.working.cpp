@@ -1,8 +1,7 @@
 //todo: add error checks for SDL_PollEvent, SDL_DestroyWindow, SDL_DestroyRenderer, SDL_Quit
 //todo: sometimes the program runs with fps being a lot slower for no apparent reason
 //todo: update SDL2
-//why do gifs sometimes have defects when they're aborted? they shouldn't.
-//todo: sometimes when it ends it prints two newlines after fps, sometimes 1
+ //why do gifs sometimes have defects when they're aborted? they shouldn't.
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -23,7 +22,6 @@ struct COORD { int X, Y; };
 #endif
 #include <boost/program_options.hpp>
 #include <boost/regex.hpp>
-#define fRAND_MAX static_cast <float> (RAND_MAX) 
 using namespace std;
 using namespace boost::program_options;
 using namespace boost;
@@ -56,7 +54,6 @@ bool noscreen = false;
 bool running = true;
 int framespan = 50;
 bool enable_vsync = false;
-
 
 void set_cursor(int x = 0, int y = 0)
 {
@@ -260,13 +257,12 @@ public:
   metapoints(const int w, const int h, int pointspercurve, bool contiguous)
   {
     this->contiguous = contiguous;
-    //method 1
-    this->c1.p1.x = (rand()) / (fRAND_MAX / w);
-    this->c1.p1.y = (rand()) / (fRAND_MAX / h);
-    this->c1.p2.x = (rand()) / (fRAND_MAX / w);
-    this->c1.p2.y = (rand()) / (fRAND_MAX / h);
-    this->c1.p3.x = (rand()) / (fRAND_MAX / w);
-    this->c1.p3.y = (rand()) / (fRAND_MAX / h);
+    this->c1.p1.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+    this->c1.p1.y = (rand()) / (static_cast <float> (RAND_MAX / h));
+    this->c1.p2.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+    this->c1.p2.y = (rand()) / (static_cast <float> (RAND_MAX / h));
+    this->c1.p3.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+    this->c1.p3.y = (rand()) / (static_cast <float> (RAND_MAX / h));
     this->c2.p1.x = (this->c1.p2.x + this->c1.p1.x) / 2;
     this->c2.p1.y = (this->c1.p2.y + this->c1.p1.y) / 2;
     this->c2.p2 = this->c1.p2;
@@ -304,8 +300,8 @@ public:
       vector<point>().swap(this->curvepoints2);
       this->c1.p1 = this->c1.p2;
       this->c1.p2 = this->c1.p3;
-      this->c1.p3.x = (rand()) / (fRAND_MAX / w);
-      this->c1.p3.y = (rand()) / (fRAND_MAX / h);
+      this->c1.p3.x = (rand()) / (static_cast <float> (RAND_MAX / w));
+      this->c1.p3.y = (rand()) / (static_cast <float> (RAND_MAX / h));
       this->c2.p1.x = (this->c1.p2.x + this->c1.p1.x) / 2;
       this->c2.p1.y = (this->c1.p2.y + this->c1.p1.y) / 2;
       this->c2.p2 = this->c1.p2;
@@ -326,12 +322,12 @@ public:
         this->lastpoint = curvepoints.back();
         vector<point>().swap(curvepoints);
         this->cpsize = this->curvepoints2.size();
-        return this->curvepoints2[this->pointindex++];
+        return this->curvepoints2[this->pointindex];
       }
       else
       {
         this->cpsize = this->curvepoints.size();
-        return this->curvepoints[this->pointindex++];
+        return this->curvepoints[this->pointindex];
       }
     }
     else
@@ -352,8 +348,8 @@ vector<point> randanchors(int w, int h, int numpoints)
   for (int i = 0; i < numpoints; i++)
   {
     point p;
-    p.x = int(rand() / (fRAND_MAX / w));
-    p.y = int(rand() / (fRAND_MAX / h));
+    p.x = int(rand() / (static_cast <float> (RAND_MAX / w)));
+    p.y = int(rand() / (static_cast <float> (RAND_MAX / h)));
     anchors.push_back(p);
   }
   return anchors;
@@ -566,7 +562,7 @@ int parsecommandline(int argc, char* argv[])
   {
     options_description desc{ "\nOptions" };
     desc.add_options()
-      ("help", "display this help screen")
+      ("help", "This help screen")
       ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you got before "
         "(but some of the other options will eliminate all similarity in the pattern if they're any different)")
       ("file", value<string>(),
@@ -587,8 +583,8 @@ int parsecommandline(int argc, char* argv[])
         "--rotatehue is enabled")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
       ("rotatehue", "make fgcolor cycle through the hues. overrides --fgcolor")
-      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. floating point. defaults "
-        "to 1. hue cycles from 0 to 360. ignored if --file or --loop is enabled.")
+      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. "
+        "ignored if --file or --loop is enabled. defaults to 1. hue cycles from 0 to 360")
       ("huemult", value<int>(), "if --loop or --file is enabled and --rotatehue is enabled, --huemult "
         "specifies how many times to cycle through hues per time loop. defaults to 1")
       ("saturation", value<float>(), "saturation of colors when using --rotatehue. 1 to 100. "
@@ -599,8 +595,7 @@ int parsecommandline(int argc, char* argv[])
         "way too fast")
       ("incontiguous", "make it so that spacecurves don't move contiguously through time, but skip pixels. "
         "this will have the effect of making the animation change faster. --incontiguous is automatically "
-        "enabled when --loop or --file is enabled. I recommend using --vsync with --incontiguous; otherwise it'll "
-        "go way too fast")
+        "enabled when --loop or --file is enabled")
       ("spacecurvepoints", value<int>(),
         "number of points calculated on each bezier curve in space. "
         "lines are drawn between each point. defaults to 100. "
@@ -644,11 +639,7 @@ int parsecommandline(int argc, char* argv[])
     if (vm.count("saturation")) sat = vm["saturation"].as<float>();
     if (vm.count("value")) val = vm["value"].as<float>();
     if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
-    if (vm.count("huespeed"))
-    {
-      huespeed = vm["huespeed"].as<float>();
-      huespeed = copysign(fmod(fabs(huespeed), 360), huespeed);
-    }
+    if (vm.count("huespeed")) huespeed = vm["huespeed"].as<float>();
     if (vm.count("huemult")) huemult = vm["huemult"].as<int>();
     if (argc == 1) cout << desc;
   }
@@ -741,9 +732,9 @@ int main(int argc, char* argv[])
     contiguous = false;
     noloop = false;
   }
-  if ((not enable_vsync) && ((not noloop) or not contiguous) && not dowrite)
+  if ((not enable_vsync) && (not noloop) && not dowrite)
   {
-    cout << endl << "Using --vsync is recommended when using --loop or --incontiguous; otherwise it'll probably run too fast." << endl;
+    cout << endl << "Using --vsync is recommended when using --loop; otherwise it'll probably run too fast." << endl;
   }
 
   bool* screen = new bool[w * h];
@@ -863,7 +854,9 @@ int main(int argc, char* argv[])
       if (rotatehue)
       {
         hue += huespeed;
-        hue = fmod(hue + 360, 360);
+        if (hue > 360) hue = fmod(hue, 360);
+        else if (hue < 0) hue += int(abs(hue) / 360) * 360 + 360;
+        //why the hell doesn't hue -= (int(hue) / 360) * 360 + 360; work?
       }
       vector<point>().swap(dispanchors);
       if (not noscreen)
@@ -942,9 +935,9 @@ int main(int argc, char* argv[])
         if (rotatehue)
         {
           hue += huespeed;
-          hue = fmod(hue + 360, 360);
+          if (hue > 360) hue = fmod(hue, 360);
+          else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
-
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
         drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
           screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);

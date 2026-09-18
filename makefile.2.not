@@ -1,0 +1,28 @@
+CC:= gcc
+SOURCES:= $(wildcard *.cpp)
+OBJECTS:= $(SOURCES:.cpp=.o)
+
+CFLAGS:= -c -Wall -O2 -lSDL2 -Igif-h -I/usr/include/SDL2
+#LDFLAGS:= -L/usr/local/lib
+LDLIBS:= -lSDL2 
+
+EXECUTABLE:= scribbles3
+
+# Instantly runs the game after linking
+#run: $(EXECUTABLE)
+#	./$(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJECTS)
+	@echo "Linking..."
+#	$(CC) $(LDFLAGS) $(LDLIBS) -o $@ $^
+	$(CC) $(LDLIBS) -o $@ $^
+	@echo "Linking for target $(EXECUTABLE) succeeded!"
+
+%.o: %.cpp
+	@echo "Compiling:"
+	$(CC) $(CFLAGS) -o $@ $<
+
+.PHONY: clean
+clean:
+	-rm $(OBJECTS)
+

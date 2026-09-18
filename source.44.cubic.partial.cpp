@@ -1,8 +1,7 @@
-//todo: add error checks for SDL_PollEvent, SDL_DestroyWindow, SDL_DestroyRenderer, SDL_Quit
-//todo: sometimes the program runs with fps being a lot slower for no apparent reason
-//todo: update SDL2
-//why do gifs sometimes have defects when they're aborted? they shouldn't.
-//todo: sometimes when it ends it prints two newlines after fps, sometimes 1
+//todo: add more error checks
+//todo: the screen randomly slows down or hangs when using --vsync while the fps still gets updated and it takes a long time to quit the console part of the program
+//returned error `Parameter 'texture' is invalid` once
+//slows down the whole computer
 #include <vector>
 #include <cstdint>
 #include <iostream>
@@ -23,7 +22,6 @@ struct COORD { int X, Y; };
 #endif
 #include <boost/program_options.hpp>
 #include <boost/regex.hpp>
-#define fRAND_MAX static_cast <float> (RAND_MAX) 
 using namespace std;
 using namespace boost::program_options;
 using namespace boost;
@@ -56,7 +54,6 @@ bool noscreen = false;
 bool running = true;
 int framespan = 50;
 bool enable_vsync = false;
-
 
 void set_cursor(int x = 0, int y = 0)
 {
@@ -152,10 +149,16 @@ struct point
   int y;
 };
 
-struct curve
+struct curve_quadratic
 {
   point p1, p2, p3;
 };
+
+struct curve_cubic
+{
+  point p1, p2, p3, p4;
+};
+
 
 float getPt(float n1, float n2, float perc)
 {
@@ -187,6 +190,35 @@ vector<point> beziercurve_quadratic(point p1, point p2, point p3, int pointsperc
   }
   return points;
 }
+
+vector<point> beziercurve_cubic(point p1, point p2, point p3, point p4, int pointspercurve)
+{
+  point p;
+  vector<point> points;
+  for (float i = 0; i < 1; i += 1.0 / static_cast <float>(pointspercurve))
+  {
+    // The Green Lines
+    float xa = getPt(p1.x, p2.x, i);
+    float ya = getPt(p1.y, p2.y, i);
+    float xb = getPt(p2.x, p3.x, i);
+    float yb = getPt(p2.y, p3.y, i);
+    float xc = getPt(p3.x, p4.x, i);
+    float yc = getPt(p3.y, p4.y, i);
+
+    // The Blue Line
+    float xm = getPt(xa, xb, i);
+    float ym = getPt(ya, yb, i);
+    float xn = getPt(xb, xc, i);
+    float yn = getPt(yb, yc, i);
+
+    // The Black Dot
+    p.x = int(getPt(xm, xn, i));
+    p.y = int(getPt(ym, yn, i));
+    points.push_back(p);
+  }
+  return points;
+}
+
 
 vector<point> plotline(point p1, point p2)
 {
@@ -242,25 +274,63 @@ vector<point> plotline(point p1, point p2)
   return points;
 }
 
-class metapoints
+class metapoints_cubic
 {
-  curve c1 = curve();
-  curve c2 = curve();
+  curve_cubic c1;
+  curve_cubic c2;
   vector<point> curvepoints2;
   vector<point> curvepoints;
   int pointindex = 0;
-  int cpsize = 0;
-  point lastpoint = point();
-  int pointspercurve = 0;
-  bool contiguous = false;
+  int cpsize;
+  point lastpoint;
+  int pointspercurve;
+  bool contiguous;
 public:
-  metapoints()
+  metapoints_cubic()
   {
   }
-  metapoints(const int w, const int h, int pointspercurve, bool contiguous)
+  metapoints_cubic(const int w, const int h, int pointspercurve, bool contiguous)
+  {
+    float perc;
+    this->contiguous = contiguous;
+    float fRAND_MAX = static_cast<float>(RAND_MAX);
+    //method 1
+    this->c1.p1.x = (rand()) / (fRAND_MAX / w);
+    this->c1.p1.y = (rand()) / (fRAND_MAX / h);
+    this->c1.p2.x = (rand()) / (fRAND_MAX / w);
+    this->c1.p2.y = (rand()) / (fRAND_MAX / h);
+    this->c1.p3.x = (rand()) / (fRAND_MAX / w);
+    this->c1.p3.y = (rand()) / (fRAND_MAX / h);
+    this->c2.p1 = this->c1.p1;
+    perc = rand() / fRAND_MAX;
+    this->c2.p2.x = getPt(this->c1.p1.x, this->c2.p2.x, perc);
+    this->c2.p2.y = getPt(this->c1.p1.y, this->c2.p2.y, perc);
+    this->c2.p3 = this->c1.p2;
+    perc = rand() / fRAND_MAX;
+    this->c2.p4.x = getPt(this->c1.p2.x, this->c2.p3.x, perc);
+    this->c2.p4.y = getPt(this->c1.p2.y, this->c2.p3.y, perc);
+  }
+};
+
+class metapoints_quadratic
+{
+  curve_quadratic c1;
+  curve_quadratic c2;
+  vector<point> curvepoints2;
+  vector<point> curvepoints;
+  int pointindex = 0;
+  int cpsize;
+  point lastpoint;
+  int pointspercurve;
+  bool contiguous;
+public:
+  metapoints_quadratic()
+  {
+  }
+  metapoints_quadratic(const int w, const int h, int pointspercurve, bool contiguous)
   {
     this->contiguous = contiguous;
-    //method 1
+    float fRAND_MAX = static_cast<float>(RAND_MAX);
     this->c1.p1.x = (rand()) / (fRAND_MAX / w);
     this->c1.p1.y = (rand()) / (fRAND_MAX / h);
     this->c1.p2.x = (rand()) / (fRAND_MAX / w);
@@ -304,6 +374,7 @@ public:
       vector<point>().swap(this->curvepoints2);
       this->c1.p1 = this->c1.p2;
       this->c1.p2 = this->c1.p3;
+      float fRAND_MAX = static_cast<float>(RAND_MAX);
       this->c1.p3.x = (rand()) / (fRAND_MAX / w);
       this->c1.p3.y = (rand()) / (fRAND_MAX / h);
       this->c2.p1.x = (this->c1.p2.x + this->c1.p1.x) / 2;
@@ -326,12 +397,12 @@ public:
         this->lastpoint = curvepoints.back();
         vector<point>().swap(curvepoints);
         this->cpsize = this->curvepoints2.size();
-        return this->curvepoints2[this->pointindex++];
+        return this->curvepoints2[this->pointindex];
       }
       else
       {
         this->cpsize = this->curvepoints.size();
-        return this->curvepoints[this->pointindex++];
+        return this->curvepoints[this->pointindex];
       }
     }
     else
@@ -340,7 +411,7 @@ public:
       else return this->curvepoints[this->pointindex++];
     }
   }
-  ~metapoints()
+  ~metapoints_quadratic()
   {
     vector<point>().swap(curvepoints2); //free memory
   }
@@ -352,8 +423,8 @@ vector<point> randanchors(int w, int h, int numpoints)
   for (int i = 0; i < numpoints; i++)
   {
     point p;
-    p.x = int(rand() / (fRAND_MAX / w));
-    p.y = int(rand() / (fRAND_MAX / h));
+    p.x = int(rand() / (static_cast <float> (RAND_MAX / w)));
+    p.y = int(rand() / (static_cast <float> (RAND_MAX / h)));
     anchors.push_back(p);
   }
   return anchors;
@@ -417,7 +488,7 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
   int pitch;
   Uint32 fgint_screen = 0;
   Uint32 bgint_screen = 0;
-  if (not noscreen)
+    if (not noscreen)
   {
     bgint_screen = SDL_MapRGBA(pixel_format_surface, bg.r, bg.g, bg.b, 0xff);
     fgint_screen = SDL_MapRGBA(pixel_format_surface, fg.r, fg.g, fg.b, 0xff);
@@ -451,8 +522,8 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
     {
       if (SDL_LockSurface(surface) < 0)
       {
-        cout << endl << "SDL_LockSurface(surface): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
+        cout << "SDL_LockSurface(surface): " << SDL_GetError() << endl;
+        exit(1);
       }
     }
   }
@@ -495,28 +566,24 @@ void drawscreen(SDL_Window* window, SDL_Renderer* renderer, SDL_Surface* surface
       if (texture == NULL)
       {
         cout << endl << "SDL_CreateTextureFromSurface(renderer, surface), NULL, NULL): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
+        exit(1);
       }
       if (SDL_RenderCopy(renderer, texture, NULL, NULL) < 0)
       {
         cout << endl << "SDL_RenderCopy(renderer, texture, NULL, NULL) < 0): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
+        exit(1);
       }
       SDL_RenderPresent(renderer);
       if (SDL_RenderClear(renderer) < 0)  //"You are strongly encouraged to call SDL_RenderClear() to initialize the backbuffer 
       {                                   //before starting each new frame's drawing, even if you plan to overwrite every pixel." 
         cout << endl << "(SDL_RenderClear(renderer): " << SDL_GetError() << endl;   //- https://wiki.libsdl.org/SDL2/SDL_RenderPresent
-        exit(EXIT_FAILURE);
+        exit(1);
       }
       SDL_DestroyTexture(texture); //dunno why we can't just make texture once in main and use it over and over? 
     }                              //screen is black when I do that
     else
     {
-      if (SDL_UpdateWindowSurface(window) < 0)
-      {
-        cout << endl << "SDL_UpdateWindowSurface(window): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
-      }
+      SDL_UpdateWindowSurface(window);
     }
   }
   if (dowrite)
@@ -529,14 +596,11 @@ rgb hex2rgb(string s)
 {
   rgb rgb2;
   smatch sm;
-  if (not (regex_match(s, sm, regex("[#]?(\\w{2})(\\w{2})(\\w{2})"))))
-  {
-    cout << "Invalid color specification: " << s << endl;
-    exit(EXIT_FAILURE);
-  }
+  regex_match(s, sm, regex("[#]?(\\w{2})(\\w{2})(\\w{2})"));
+
   rgb2.r = stoi(sm[1], nullptr, 16);
-  rgb2.g = stoi(sm[2], nullptr, 16);
-  rgb2.b = stoi(sm[3], nullptr, 16);
+  rgb2.b = stoi(sm[2], nullptr, 16);
+  rgb2.g = stoi(sm[3], nullptr, 16);
   return rgb2;
 }
 
@@ -566,7 +630,7 @@ int parsecommandline(int argc, char* argv[])
   {
     options_description desc{ "\nOptions" };
     desc.add_options()
-      ("help", "display this help screen")
+      ("help", "This help screen")
       ("seed", value<int>(), "randomization seed. use this to get the same exact pattern you got before "
         "(but some of the other options will eliminate all similarity in the pattern if they're any different)")
       ("file", value<string>(),
@@ -582,13 +646,13 @@ int parsecommandline(int argc, char* argv[])
         "increase this to make the loops longer. defaults to 5")
       ("w", value<int>(), "window width. defaults to 1000. I recommend a square aspect ratio; otherwise the graphics are "
         "kinda skewed")
-      ("h", value<int>(), "window height. defaults to 1000. smaller width and height make the program run faster  ")
-      ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or #000000 if "
-        "--rotatehue is enabled")
+      ("h", value<int>(), "window height. defaults to 1000. smaller width and height make the program run faster")
+      ("bgcolor", value<string>(), "background color, six-digit hex number. defaults to #ffffff, or "
+        "#000000 if --rotatehue is enabled")
       ("fgcolor", value<string>(), "foreground color, six-digit hex number. defaults to #0000ff")
       ("rotatehue", "make fgcolor cycle through the hues. overrides --fgcolor")
-      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. floating point. defaults "
-        "to 1. hue cycles from 0 to 360. ignored if --file or --loop is enabled.")
+      ("huespeed", value<float>(), "amount to increment hue per frame if --rotatehue is enabled. "
+        "ignored if --file or --loop is enabled. defaults to 1. hue cycles from 0 to 360")
       ("huemult", value<int>(), "if --loop or --file is enabled and --rotatehue is enabled, --huemult "
         "specifies how many times to cycle through hues per time loop. defaults to 1")
       ("saturation", value<float>(), "saturation of colors when using --rotatehue. 1 to 100. "
@@ -599,8 +663,7 @@ int parsecommandline(int argc, char* argv[])
         "way too fast")
       ("incontiguous", "make it so that spacecurves don't move contiguously through time, but skip pixels. "
         "this will have the effect of making the animation change faster. --incontiguous is automatically "
-        "enabled when --loop or --file is enabled. I recommend using --vsync with --incontiguous; otherwise it'll "
-        "go way too fast")
+        "enabled when --loop or --file is enabled")
       ("spacecurvepoints", value<int>(),
         "number of points calculated on each bezier curve in space. "
         "lines are drawn between each point. defaults to 100. "
@@ -644,11 +707,7 @@ int parsecommandline(int argc, char* argv[])
     if (vm.count("saturation")) sat = vm["saturation"].as<float>();
     if (vm.count("value")) val = vm["value"].as<float>();
     if (vm.count("bgcolor")) bg = hex2rgb(vm["bgcolor"].as<string>());
-    if (vm.count("huespeed"))
-    {
-      huespeed = vm["huespeed"].as<float>();
-      huespeed = copysign(fmod(fabs(huespeed), 360), huespeed);
-    }
+    if (vm.count("huespeed")) huespeed = vm["huespeed"].as<float>();
     if (vm.count("huemult")) huemult = vm["huemult"].as<int>();
     if (argc == 1) cout << desc;
   }
@@ -677,29 +736,21 @@ GifWriter writer = {};
 
 #ifdef _WIN32
 BOOL WINAPI consoleHandler(DWORD signal) {
-  switch (signal)
+  if (signal == CTRL_C_EVENT)
   {
-  case CTRL_C_EVENT:
-  case CTRL_CLOSE_EVENT:
-  case CTRL_BREAK_EVENT:
-  case CTRL_LOGOFF_EVENT:
-  case CTRL_SHUTDOWN_EVENT:
     if (dowrite)
     {
       GifEnd(&writer);
       display_warning();
+      running = false;
     }
-    else if (signal != CTRL_CLOSE_EVENT)
+    else
     {
       show_console_cursor(true);
       cout << endl << endl;
     }
-    running = false;
-    if (signal == CTRL_CLOSE_EVENT) return TRUE;
-    return FALSE;
-  default:
-    return FALSE;
   }
+  return not running; //wait wtf?
 }
 #elif __linux__
 void my_handler(int s) {
@@ -707,14 +758,14 @@ void my_handler(int s) {
   {
     GifEnd(&writer);
     display_warning();
-    exit(EXIT_FAILURE);
+    running = false;
   }
   else
   {
     show_console_cursor(true);
-    cout << endl << endl; 
-    exit(EXIT_SUCCESS);
+    cout << endl;
   }
+  exit(1);
 }
 #endif
 
@@ -740,10 +791,6 @@ int main(int argc, char* argv[])
   {
     contiguous = false;
     noloop = false;
-  }
-  if ((not enable_vsync) && ((not noloop) or not contiguous) && not dowrite)
-  {
-    cout << endl << "Using --vsync is recommended when using --loop or --incontiguous; otherwise it'll probably run too fast." << endl;
   }
 
   bool* screen = new bool[w * h];
@@ -784,46 +831,32 @@ int main(int argc, char* argv[])
   show_console_cursor(false);
   if (not noscreen)
   {
-    if (SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "1", SDL_HINT_OVERRIDE) != SDL_TRUE) cout << "Could not set vsync. It may not be available on your platform." << endl;
-    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
-    {
-      cout << "SDL_Init(SDL_INIT_EVERYTHING): " << SDL_GetError() << endl;
-      exit(EXIT_FAILURE);
-    }
+    SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "1", SDL_HINT_OVERRIDE); //why doesn't this work?
+    SDL_Init(SDL_INIT_EVERYTHING);
     window = SDL_CreateWindow("scribbles", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI);
-    if (window == NULL)
-    {
-      cout << "SDL_CreateWindow(\"scribbles\", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI): " << SDL_GetError() << endl;
-      exit(EXIT_FAILURE);
-    }
     if (enable_vsync)
     {
       surface = SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0);
       if (surface == NULL)
       {
-        cout << "SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
+        cout << endl << "SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0): " << SDL_GetError() << endl;
+        exit(1);
       }
       renderer = SDL_CreateRenderer(window, -1, 0);
       if (renderer == NULL)
       {
-        cout << "SDL_CreateRenderer(window, -1, 0): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
+        cout << endl << "SDL_CreateRenderer(window, -1, 0): " << SDL_GetError() << endl;
+        exit(1);
       }
       if (SDL_RenderClear(renderer) < 0)  //"You are strongly encouraged to call SDL_RenderClear() to initialize the backbuffer 
       {                                   //before starting each new frame's drawing, even if you plan to overwrite every pixel." 
-        cout << "(SDL_RenderClear(renderer): " << SDL_GetError() << endl;   //- https://wiki.libsdl.org/SDL2/SDL_RenderPresent
-        exit(EXIT_FAILURE);
+        cout << endl << "(SDL_RenderClear(renderer): " << SDL_GetError() << endl;   //- https://wiki.libsdl.org/SDL2/SDL_RenderPresent
+        exit(1);
       }
     }
     else
     {
       surface = SDL_GetWindowSurface(window);
-      if (surface == NULL)
-      {
-        cout << "SDL_GetWindowSurface(window): " << SDL_GetError() << endl;
-        exit(EXIT_FAILURE);
-      }
     }
     pixel_format_surface = surface->format;
   }
@@ -863,7 +896,9 @@ int main(int argc, char* argv[])
       if (rotatehue)
       {
         hue += huespeed;
-        hue = fmod(hue + 360, 360);
+        if (hue > 360) hue = fmod(hue, 360);
+        else if (hue < 0) hue += int(abs(hue) / 360) * 360 + 360;
+        //why the hell doesn't hue -= (int(hue) / 360) * 360 + 360; work?
       }
       vector<point>().swap(dispanchors);
       if (not noscreen)
@@ -875,7 +910,7 @@ int main(int argc, char* argv[])
           SDL_DestroyWindow(window);
           SDL_DestroyRenderer(renderer);
           SDL_Quit();
-          cout << endl << endl;
+          cout << endl;
           return 0;
         }
       }
@@ -942,9 +977,9 @@ int main(int argc, char* argv[])
         if (rotatehue)
         {
           hue += huespeed;
-          hue = fmod(hue + 360, 360);
+          if (hue > 360) hue = fmod(hue, 360);
+          else if (hue < 0) hue -= ((int(hue / 360) + 1) + fmod(hue, 360) == 0 ? 1 : 0) * 360;
         }
-
         if (rotatehue) fg = HSVtoRGB(hue, sat, val);
         drawscreen(window, renderer, surface, w, h, createdisploop(createpercloop(dispanchors, spacecurvepoints)),
           screen, image, writer, noscreen, dowrite, bg, fg, pixel_format_surface, enable_vsync);
@@ -960,7 +995,6 @@ int main(int argc, char* argv[])
             SDL_Quit();
             //delete [] screen;
             //delete [] timepercanchors;
-            cout << endl << endl;
             show_console_cursor(true);
             if (dowrite)
             {

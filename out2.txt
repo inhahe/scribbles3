@@ -1,0 +1,59 @@
+ Volume in drive D has no label.
+ Volume Serial Number is 1A9E-4122
+
+ Directory of D:\visual studio projects\scribbles3
+
+02/09/2023  08:35 PM             1,243 drawlinerenderer.cpp
+02/09/2023  08:34 PM             1,298 drawlinevector.cpp
+05/30/2024  11:28 AM            22,269 sounce.31.multithreaded.working.cpp
+02/10/2023  04:25 PM             6,453 source.10.working.cpp
+02/10/2023  04:58 PM             7,072 source.11.working.savetofile.cpp
+02/10/2023  07:27 PM             9,731 source.12.working.cpp
+02/10/2023  07:47 PM             9,539 source.13.working.cpp
+02/10/2023  08:30 PM            10,839 source.14.working.cpp
+02/10/2023  09:05 PM            15,033 source.15.working.cpp
+02/10/2023  10:12 PM            16,015 source.16.working.cpp
+02/10/2023  11:08 PM            17,300 source.17.working.cpp
+02/11/2023  01:47 AM            17,865 source.18.working.cpp
+02/11/2023  04:49 AM            16,639 source.19.working.cpp
+02/09/2023  08:31 PM             5,362 source.2.cpp
+02/11/2023  05:07 AM            15,800 source.20.working.cpp
+02/11/2023  05:20 AM            15,938 source.21.working.bugfix.cpp
+02/11/2023  05:44 AM            15,893 source.22.broken.cpp
+02/12/2023  12:42 AM            18,606 source.24.experimental.cpp
+02/11/2023  11:36 PM            18,607 source.24.working.cpp
+02/12/2023  03:47 AM            24,953 source.25.intermediate.cpp
+02/12/2023  01:41 AM            23,386 source.25.working.cpp
+02/12/2023  02:54 AM            24,707 source.26.working.cpp
+02/12/2023  04:12 AM            25,806 source.27.working.cpp
+02/12/2023  04:15 AM            26,184 source.28.working.cpp
+02/14/2023  01:57 AM            21,280 source.29.cpp
+02/09/2023  09:30 PM             3,191 source.3.cpp
+11/12/2023  01:53 PM            21,352 source.30.working.cpp
+05/30/2024  06:30 PM            24,077 source.31.working.multithreaded.cpp
+05/30/2024  09:39 PM            24,473 source.32.working.threaded.debug.cpp
+05/30/2024  10:18 PM            22,836 source.33.working.cpp
+05/31/2024  07:23 AM            23,646 source.34.working.linux.cpp
+05/31/2024  11:18 AM            22,807 Source.35.working.cpp
+06/01/2024  08:48 AM            25,923 source.37.working.cpp
+06/01/2024  09:26 AM            25,822 source.38.working.cpp
+06/01/2024  09:28 AM            25,417 source.39.working.cpp
+02/10/2023  07:11 AM             5,222 source.4.cpp
+06/01/2024  10:07 AM            25,874 source.40.working.cpp
+06/01/2024  11:11 AM            27,076 source.41.superfluous.cpp
+06/01/2024  07:14 PM            27,575 source.42.debug.cpp
+06/01/2024  10:48 PM            29,131 source.43.working.cpp
+02/10/2023  09:15 AM             8,070 source.5.cpp
+02/10/2023  10:01 AM             8,424 source.6.cpp
+02/10/2023  11:56 AM             9,398 source.7.cpp
+02/10/2023  12:33 PM             9,867 source.8.cpp
+02/10/2023  12:40 PM             8,927 source.9.working.cpp
+02/16/2023  06:31 AM            21,252 source.circles.3.cpp
+02/14/2023  08:48 PM            19,175 source.circles1.cpp
+02/15/2023  02:55 AM            19,311 source.circles2.cpp
+06/01/2024  10:48 PM            29,131 Source.cpp
+02/13/2023  07:04 PM            25,576 source.experiments.cpp
+05/31/2024  07:15 AM             1,164 Source1.cpp
+05/31/2024  07:09 AM               331 Source2.cpp
+              52 File(s)        882,866 bytes
+               0 Dir(s)  515,792,060,416 bytes free
